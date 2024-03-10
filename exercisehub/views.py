@@ -4,8 +4,8 @@ from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from exercisehub.serializers import ExerciseSerializer, ProfileSerializer
-from .models import Exercise, Profile
+from exercisehub.serializers import CustomExerciseSerializer, ExerciseSerializer, PlanSerializer, ProfileSerializer, WeekDaySerializer
+from .models import Exercise, Plan, Profile, Weekday
 # Create your views here.
 
 
@@ -43,3 +43,27 @@ class ExerciseViewSet(ModelViewSet):
             return [AllowAny()]
         return [IsAdminUser()]
     
+class WeekdayViewSet(ModelViewSet):
+    
+    serializer_class = WeekDaySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Weekday.objects.filter(plan__user_id=self.request.user.id).all()
+    
+
+class MyExercisesViewSet(ModelViewSet):
+    http_method_names = ['patch', 'get', 'delete', 'head', 'options']
+
+    serializer_class = ExerciseSerializer
+
+    def get_queryset(self):
+        return Exercise.objects.filter(plan__user=self.request.user).all()
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return ExerciseSerializer
+        return CustomExerciseSerializer
+    
+    def get_serializer_context(self):
+        return {'exercise_pk': self.kwargs['exercise_pk']}

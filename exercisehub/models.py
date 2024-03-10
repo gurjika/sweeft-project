@@ -29,7 +29,7 @@ class Exercise(models.Model):
 
 class ExerciseCustom(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    default_exercise = models.OneToOneField(Exercise, on_delete=models.PROTECT)
+    default_exercise = models.OneToOneField(Exercise, on_delete=models.PROTECT, related_name='custom_exercise')
     new_reps = models.PositiveSmallIntegerField(null=True)
     new_sets = models.PositiveSmallIntegerField(null=True)
     duration = models.PositiveSmallIntegerField()
@@ -54,8 +54,8 @@ class Weekday(models.Model):
 
 class Plan(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    exercise = models.ManyToManyField(Exercise, related_name='plans', through='ExercisePlan')
-    weekday = models.ManyToManyField(Weekday, through='PlanWeekday', related_name='plans')
+    exercise = models.ManyToManyField(Exercise, related_name='plan', through='ExercisePlan')
+    weekday = models.ManyToManyField(Weekday, through='PlanWeekday', related_name='plan')
 
 
 
