@@ -5,6 +5,7 @@ from . import views
 router = routers.DefaultRouter()
 
 router.register(prefix='profiles', viewset=views.ProfileViewSet)
+router.register(prefix='exercises', viewset=views.ExerciseViewSet)
 urlpatterns = [
     ###
 ]

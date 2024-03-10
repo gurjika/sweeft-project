@@ -12,33 +12,33 @@ class Profile(models.Model):
 
 
 class Muscle(models.Model):
-    name = models.CharField(max_length=255)
+    muscle = models.CharField(max_length=255)
 
 
 
 class Exercise(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
-    start_reps = models.PositiveSmallIntegerField(blank=True)
-    start_sets = models.PositiveSmallIntegerField(blank=True)
+    start_reps = models.PositiveSmallIntegerField(null=True)
+    start_sets = models.PositiveSmallIntegerField(null=True)
     duration = models.PositiveSmallIntegerField()
-    start_distance = models.DecimalField(max_digits=5, decimal_places=2, blank=True)
-    muscle = models.ManyToManyField(Muscle, through='MuscleExercise')
+    start_distance = models.DecimalField(max_digits=5, decimal_places=2, null=True)
+    muscles = models.ManyToManyField(Muscle, through='MuscleExercise')
 
 
 
 class ExerciseCustom(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     default_exercise = models.OneToOneField(Exercise, on_delete=models.PROTECT)
-    new_reps = models.PositiveSmallIntegerField(blank=True)
-    new_sets = models.PositiveSmallIntegerField(blank=True)
+    new_reps = models.PositiveSmallIntegerField(null=True)
+    new_sets = models.PositiveSmallIntegerField(null=True)
     duration = models.PositiveSmallIntegerField()
-    new_distance = models.DecimalField(max_digits=5, decimal_places=2, blank=True)
+    new_distance = models.DecimalField(max_digits=5, decimal_places=2, null=True)
 
 class ExerciseAchievement(models.Model):
-    achieved_sets = models.PositiveSmallIntegerField(blank=True)
-    achieved_reps = models.PositiveSmallIntegerField(blank=True)
-    achieved_distance = models.DecimalField(max_digits=5, decimal_places=2, blank=True)
+    achieved_sets = models.PositiveSmallIntegerField(null=True)
+    achieved_reps = models.PositiveSmallIntegerField(null=True)
+    achieved_distance = models.DecimalField(max_digits=5, decimal_places=2, null=True)
     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
 
 

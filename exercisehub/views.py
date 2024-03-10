@@ -4,8 +4,8 @@ from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from exercisehub.serializers import ProfileSerializer
-from .models import Profile
+from exercisehub.serializers import ExerciseSerializer, ProfileSerializer
+from .models import Exercise, Profile
 # Create your views here.
 
 
@@ -33,3 +33,13 @@ class ProfileViewSet(ModelViewSet):
             serializer.save()
             return Response(serializer.data)
 
+
+class ExerciseViewSet(ModelViewSet):
+    queryset = Exercise.objects.all()
+    serializer_class = ExerciseSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAdminUser()]
+    
