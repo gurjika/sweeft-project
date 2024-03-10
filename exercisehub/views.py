@@ -4,7 +4,7 @@ from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from exercisehub.serializers import CustomExerciseSerializer, ExerciseSerializer, PlanSerializer, ProfileSerializer, WeekDaySerializer
+from exercisehub.serializers import AddExerciseToListSerializer, CustomExerciseSerializer, ExerciseSerializer, PlanSerializer, ProfileSerializer, WeekDaySerializer
 from .models import Exercise, Plan, Profile, Weekday
 # Create your views here.
 
@@ -43,7 +43,8 @@ class ExerciseViewSet(ModelViewSet):
             return [AllowAny()]
         return [IsAdminUser()]
     
-class WeekdayViewSet(ModelViewSet):
+class WeekdayViewSet(ListModelMixin, GenericViewSet, RetrieveModelMixin):
+
     
     serializer_class = WeekDaySerializer
     permission_classes = [IsAuthenticated]
@@ -53,7 +54,7 @@ class WeekdayViewSet(ModelViewSet):
     
 
 class MyExercisesViewSet(ModelViewSet):
-    http_method_names = ['patch', 'get', 'delete', 'head', 'options']
+    http_method_names = ['patch', 'get', 'delete', 'head', 'options', 'post']
 
     serializer_class = ExerciseSerializer
 
@@ -63,7 +64,19 @@ class MyExercisesViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.request.method == 'GET':
             return ExerciseSerializer
+        if self.request.method == 'POST':
+            return AddExerciseToListSerializer
         return CustomExerciseSerializer
     
     def get_serializer_context(self):
-        return {'exercise_pk': self.kwargs['exercise_pk']}
+        if self.request.method == 'POST':
+            return {'plan_pk': self.kwargs['plan_pk']}
+        if self.request.method == 'PATCH':
+             return {'exercise_pk': self.kwargs['pk'], 'weekday_pk': self.kwargs['plan_pk']}
+    
+
+    def destroy(self, request, *args, **kwargs):
+        plan = Plan.objects.get(pk=self.kwargs['plan_pk'])
+        exercise = Exercise.objects.get(pk=self.kwargs['pk'])
+        plan.exercise.remove(exercise)
+        return Response('Exercise Removed from your plan')

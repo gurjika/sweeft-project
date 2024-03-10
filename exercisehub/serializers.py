@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from .models import Exercise, ExerciseCustom, ExercisePlan, Muscle, Plan, PlanWeekday, Profile, Weekday
 
@@ -84,3 +85,24 @@ class CustomExerciseSerializer(serializers.ModelSerializer):
 
         return custom_exercise
 
+
+class AddExerciseToListSerializer(serializers.ModelSerializer):
+    exercise_id = serializers.IntegerField()
+    class Meta:
+        model = Plan
+        fields = ['exercise_id']
+
+
+    def create(self, validated_data):
+        exercise_id = self.validated_data['exercise_id']
+        plan_id = self.context['plan_pk']
+        plan = Plan.objects.get(id=plan_id)
+        exercise =  Exercise.objects.get(id=exercise_id)
+        
+        plan.exercise.add(exercise)
+        
+        plan.save()
+        exercise_plan_object = ExercisePlan.objects.get(exercise_id=exercise_id)
+        return exercise_plan_object
+        
+    

@@ -8,7 +8,7 @@ router.register(prefix='profiles', viewset=views.ProfileViewSet)
 router.register(prefix='all-exercises', viewset=views.ExerciseViewSet)
 router.register(prefix='plans', viewset=views.WeekdayViewSet, basename='plans')
 
-plans_router = routers.NestedDefaultRouter(parent_router=router, parent_prefix='plans', lookup='exercise')
+plans_router = routers.NestedDefaultRouter(parent_router=router, parent_prefix='plans', lookup='plan')
 plans_router.register('exercises', views.MyExercisesViewSet, basename='exercises')
 
 urlpatterns = [
