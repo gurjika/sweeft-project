@@ -8,6 +8,10 @@ django = "*"
 psycopg2 = "*"
 mysqlclient = "*"
 python-dotenv = "*"
+djoser = "*"
+djangorestframework = "*"
+djangorestframework-simplejwt = "*"
+drf-nested-routers = "*"
 
 [dev-packages]
 
