@@ -25,6 +25,8 @@ class Exercise(models.Model):
     start_distance = models.DecimalField(max_digits=5, decimal_places=2, blank=True)
     muscle = models.ManyToManyField(Muscle, through='MuscleExercise')
 
+
+
 class ExerciseCustom(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     default_exercise = models.OneToOneField(Exercise, on_delete=models.PROTECT)
@@ -42,6 +44,12 @@ class ExerciseAchievement(models.Model):
 
 class Weekday(models.Model):
     weekday = models.CharField(max_length=255)
+
+    def __str__(self) -> str:
+        return self.weekday
+    
+    class Meta:
+        ordering = ['id']
 
 
 class Plan(models.Model):
