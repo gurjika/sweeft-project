@@ -4,11 +4,11 @@ from django.conf import settings
 # Create your models here.
 
 class Profile(models.Model):
-    age = models.PositiveSmallIntegerField(validators=[MinValueValidator(8), MaxValueValidator(95)])
-    start_weight = models.DecimalField(max_digits=5, decimal_places=2)
-    weight_now = models.DecimalField(max_digits=5, decimal_places=2)
-    height = models.DecimalField(max_digits=5, decimal_places=2)
-    goal_weight = models.DecimalField(max_digits=5, decimal_places=2)
+    age = models.PositiveSmallIntegerField(validators=[MinValueValidator(8), MaxValueValidator(95)], null=True)
+    start_weight = models.DecimalField(max_digits=5, decimal_places=2, null=True)
+    weight_now = models.DecimalField(max_digits=5, decimal_places=2, null=True)
+    height = models.DecimalField(max_digits=5, decimal_places=2, null=True)
+    goal_weight = models.DecimalField(max_digits=5, decimal_places=2, null=True)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
 
