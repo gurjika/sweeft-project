@@ -6,8 +6,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Prefetch
 
-from exercisehub.serializers import AddExerciseToListSerializer, AddPlanToWeekDaySerializer, AssessmentSerializer, CustomExerciseSerializer, ExerciseAchievementSerializer, ExerciseSerializer, FullAssessmentSerializer, PlanSerializer, ProfileAchievementsSerializer, ProfileSerializer, SimpleProfileSerializer, WeekDaySerializer
+from exercisehub.serializers import AddExerciseToListSerializer, AddPlanToWeekDaySerializer, AssessmentSerializer, CustomExerciseSerializer, ExerciseAchievementSerializer, ExerciseSerializer, FullAssessmentSerializer, PlanSerializer, ProfileAchievementsSerializer, ProfileSerializer, SimpleProfileSerializer, UploadExerciseSerializer, WeekDaySerializer
 from .models import Assessment, Exercise, ExerciseAchievement, Plan, Profile, Weekday
+from datetime import datetime
 # Create your views here.
 
 
@@ -91,6 +92,9 @@ class WeekdayViewSet(ListModelMixin, RetrieveModelMixin, DestroyModelMixin, Gene
         if self.request.method == 'POST':
             return AddPlanToWeekDaySerializer
     
+    def get_serializer_context(self):
+        return {'profile_id': self.request.user.profile.id}
+    
 
     def destroy(self, request, *args, **kwargs):
         weekday = Weekday.objects.get(id=self.kwargs['pk'])
@@ -108,7 +112,8 @@ class MyExercisesViewSet(ModelViewSet):
     serializer_class = ExerciseSerializer
 
     def get_queryset(self):
-        return Exercise.objects.filter(plan__profile__user=self.request.user).all()
+        plan = Weekday.objects.get(id=self.kwargs['weekday_pk']).plan
+        return Exercise.objects.filter(plan__profile__user=self.request.user, plan=plan).all()
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -119,13 +124,14 @@ class MyExercisesViewSet(ModelViewSet):
     
     def get_serializer_context(self):
         if self.request.method == 'POST':
-            return {'plan_pk': self.kwargs['plan_pk'], 'user': self.request.user}
+            return {'weekday_pk': self.kwargs['weekday_pk'], 'user': self.request.user, }
         if self.request.method == 'PATCH':
-             return {'exercise_pk': self.kwargs['pk'], 'weekday_pk': self.kwargs['plan_pk'], 'user': self.request.user}
+             return {'exercise_pk': self.kwargs['pk'], 'weekday_pk': self.kwargs['weekday_pk'], 'user': self.request.user}
     
 
     def destroy(self, request, *args, **kwargs):
-        plan = Plan.objects.get(pk=self.kwargs['plan_pk'])
+        weekday = Weekday.objects.get(id=self.kwargs['weekday_pk'])
+        plan = weekday.plan
         exercise = Exercise.objects.get(pk=self.kwargs['pk'])
         plan.exercise.remove(exercise)
         return Response('Exercise Removed from your plan')
@@ -152,3 +158,21 @@ class AssessmentViewSet(ModelViewSet):
         return {'profile_id': self.request.user.profile.id}
     
 
+
+class ExerciseCompletionViewSet(ListModelMixin, CreateModelMixin, GenericViewSet):
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return WeekDaySerializer
+        return UploadExerciseSerializer
+
+    def get_queryset(self):
+        weekday = datetime.now().strftime('%A')
+        queryset = Weekday.objects.filter(weekday=weekday, plan__profile=self.request.user.profile)
+        return queryset
+    
+
+    def get_serializer_context(self):
+        weekday = datetime.now().strftime('%A')
+        weekday1 = Weekday.objects.get(weekday=weekday, plan__profile=self.request.user.profile)
+        return {'plan': weekday1.plan}

@@ -1,6 +1,9 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericRelation
+from django.contrib.contenttypes.models import ContentType
 # Create your models here.
 
 class Profile(models.Model):
@@ -10,6 +13,7 @@ class Profile(models.Model):
     height = models.DecimalField(max_digits=5, decimal_places=2, null=True)
     goal_weight = models.DecimalField(max_digits=5, decimal_places=2, null=True)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    completion_rates = GenericRelation('Tracking', related_query_name='profile_trackings')
 
 
 class Muscle(models.Model):
@@ -47,6 +51,7 @@ class ExerciseAchievement(models.Model):
 class Plan(models.Model):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='plans')
     exercise = models.ManyToManyField(Exercise, related_name='plan', through='ExercisePlan')
+    completion_rates = GenericRelation('Tracking', related_query_name='trackings')
 
 
 
@@ -78,8 +83,15 @@ class Assessment(models.Model):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='assessments')
 
 
-
 class Tracking(models.Model):
-    completion_rate = models.DecimalField(max_digits=5, decimal_places=2)
-    profile = models.OneToOneField(Profile, on_delete=models.CASCADE)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+    completion_percentage = models.DecimalField(max_digits=6, decimal_places=2)
 
+
+class CompletedExercise(models.Model):
+    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
+    reps = models.PositiveSmallIntegerField()
+    sets = models.PositiveSmallIntegerField()
+    duration = models.PositiveSmallIntegerField()
