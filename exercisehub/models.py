@@ -5,7 +5,8 @@ from django.conf import settings
 
 class Profile(models.Model):
     age = models.PositiveSmallIntegerField(validators=[MinValueValidator(8), MaxValueValidator(95)])
-    weight = models.DecimalField(max_digits=5, decimal_places=2)
+    start_weight = models.DecimalField(max_digits=5, decimal_places=2)
+    weight_now = models.DecimalField(max_digits=5, decimal_places=2)
     height = models.DecimalField(max_digits=5, decimal_places=2)
     goal_weight = models.DecimalField(max_digits=5, decimal_places=2)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -75,8 +76,7 @@ class MuscleExercise(models.Model):
 class Assessment(models.Model):
     weight = models.DecimalField(max_digits=5, decimal_places=2)
     weight_added = models.DateField(auto_now_add=True)
-    weight_lost = models.DecimalField(max_digits=5, decimal_places=2)
-    weight_gained = models.DecimalField(max_digits=5, decimal_places=2)
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='assessments')
 
 
 

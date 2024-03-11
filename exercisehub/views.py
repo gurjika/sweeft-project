@@ -6,8 +6,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Prefetch
 
-from exercisehub.serializers import AddExerciseToListSerializer, AddPlanToWeekDaySerializer, CustomExerciseSerializer, ExerciseSerializer, PlanSerializer, ProfileSerializer, SimpleProfileSerializer, WeekDaySerializer
-from .models import Exercise, Plan, Profile, Weekday
+from exercisehub.serializers import AddExerciseToListSerializer, AddPlanToWeekDaySerializer, AssessmentSerializer, CustomExerciseSerializer, ExerciseSerializer, FullAssessmentSerializer, PlanSerializer, ProfileSerializer, SimpleProfileSerializer, WeekDaySerializer
+from .models import Assessment, Exercise, Plan, Profile, Weekday
 # Create your views here.
 
 
@@ -73,7 +73,7 @@ class WeekdayViewSet(ListModelMixin, RetrieveModelMixin, DestroyModelMixin, Gene
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Weekday.objects.filter(plan__user_id=self.request.user.id).all()
+        return Weekday.objects.select_related('plan').filter(plan__profile__user_id=self.request.user.id).all()
     
 
     def get_serializer_class(self):
@@ -99,7 +99,7 @@ class MyExercisesViewSet(ModelViewSet):
     serializer_class = ExerciseSerializer
 
     def get_queryset(self):
-        return Exercise.objects.filter(plan__user=self.request.user).all()
+        return Exercise.objects.filter(plan__profile__user=self.request.user).all()
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -120,3 +120,24 @@ class MyExercisesViewSet(ModelViewSet):
         exercise = Exercise.objects.get(pk=self.kwargs['pk'])
         plan.exercise.remove(exercise)
         return Response('Exercise Removed from your plan')
+    
+
+
+class AssessmentViewSet(ModelViewSet):
+    serializer_class = FullAssessmentSerializer
+    def get_queryset(self):
+        queryset = Profile.objects.filter(user=self.request.user).prefetch_related('assessments')
+        return queryset
+    
+
+    
+    @action(detail=False)
+    def assessment(self, request):
+
+        if self.request.method == 'GET':
+            return AssessmentSerializer
+        
+
+
+    def get_serializer_context(self):
+        return {'profile_id': self.request.user.profile.id}

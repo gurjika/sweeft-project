@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-from .models import Exercise, ExerciseCustom, ExercisePlan, Muscle, Plan, Profile, Weekday
+from .models import Assessment, Exercise, ExerciseCustom, ExercisePlan, Muscle, Plan, Profile, Weekday
 
 
 
@@ -134,3 +134,47 @@ class SimpleProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ['age', 'weight', 'goal_weight', 'height']
+
+
+class AssessmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Assessment
+        fields = ['weight', 'weight_added']
+
+
+
+class FullAssessmentSerializer(serializers.ModelSerializer):
+    assessments = AssessmentSerializer(many=True, read_only=True)
+    start_weight = serializers.DecimalField(read_only=True, decimal_places=2, max_digits=5)
+    weight_gained = serializers.SerializerMethodField(method_name='returns_weight_gained')
+    weight_lost = serializers.SerializerMethodField(method_name='returns_weight_lost')
+
+    class Meta:
+        model = Profile
+        fields = ['assessments', 'start_weight', 'weight_now', 'weight_gained', 'weight_lost']
+
+
+    def returns_weight_gained(self, profile):
+        weight_gained = profile.weight_now - profile.start_weight
+        
+        if weight_gained > 0:
+            return 0
+        return weight_gained
+    
+    def returns_weight_lost(self, profile):
+        weight_lost = profile.start_weight - profile.weight_now
+        if weight_lost < 0:
+            return 0
+        return weight_lost
+    
+    def create(self, validated_data):
+        weight_now = validated_data['weight_now']
+        profile_id = self.context['profile_id']
+        assessment = Assessment.objects.create(weight=weight_now, profile_id=profile_id)
+        assessment.save()
+
+        profile = Profile.objects.get(id=profile_id)
+        profile.weight_now = weight_now
+        profile.save()
+
+        return profile
