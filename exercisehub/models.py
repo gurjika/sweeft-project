@@ -23,7 +23,6 @@ class Exercise(models.Model):
     start_reps = models.PositiveSmallIntegerField(null=True)
     start_sets = models.PositiveSmallIntegerField(null=True)
     duration = models.PositiveSmallIntegerField()
-    start_distance = models.DecimalField(max_digits=5, decimal_places=2, null=True)
     muscles = models.ManyToManyField(Muscle, through='MuscleExercise')
 
 
@@ -34,13 +33,13 @@ class ExerciseCustom(models.Model):
     new_reps = models.PositiveSmallIntegerField(null=True)
     new_sets = models.PositiveSmallIntegerField(null=True)
     duration = models.PositiveSmallIntegerField()
-    new_distance = models.DecimalField(max_digits=5, decimal_places=2, null=True)
 
 class ExerciseAchievement(models.Model):
     achieved_sets = models.PositiveSmallIntegerField(null=True)
     achieved_reps = models.PositiveSmallIntegerField(null=True)
-    achieved_distance = models.DecimalField(max_digits=5, decimal_places=2, null=True)
-    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
+    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE, related_name='exercises')
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='achievements')
+    duration = models.PositiveSmallIntegerField()
 
 
 

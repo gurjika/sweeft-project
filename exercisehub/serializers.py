@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-from .models import Assessment, Exercise, ExerciseCustom, ExercisePlan, Muscle, Plan, Profile, Weekday
+from .models import Assessment, Exercise, ExerciseAchievement, ExerciseCustom, ExercisePlan, Muscle, Plan, Profile, Weekday
 
 
 
@@ -17,11 +17,10 @@ class ExerciseSerializer(serializers.ModelSerializer):
     start_reps = serializers.SerializerMethodField(method_name='return_reps')
     start_sets = serializers.SerializerMethodField(method_name='return_sets')
     duration = serializers.SerializerMethodField(method_name='return_duration')
-    start_distance = serializers.SerializerMethodField(method_name='return_distance')
 
     class Meta:
         model = Exercise
-        fields = ['id','name', 'description', 'start_reps', 'start_sets', 'duration', 'start_distance', 'muscles']
+        fields = ['id','name', 'description', 'start_reps', 'start_sets', 'duration', 'muscles']
 
     def has_custom_exercise(self, exercise):
         if hasattr(exercise, 'custom_exercise') and exercise.custom_exercise is not None:
@@ -44,10 +43,7 @@ class ExerciseSerializer(serializers.ModelSerializer):
             return exercise.custom_exercise.duration
         return exercise.duration
         
-    def return_distance(self, exercise):
-        if self.has_custom_exercise(exercise):
-            return exercise.custom_exercise.new_distance
-        return exercise.start_distance
+
      
     
 class PlanSerializer(serializers.ModelSerializer):
@@ -70,24 +66,83 @@ class WeekDaySerializer(serializers.ModelSerializer):
 
 
 class CustomExerciseSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
     class Meta:
         model = ExerciseCustom
-        fields = ['id', 'new_reps', 'new_sets', 'duration', 'new_distance']
+        fields = ['id', 'new_reps', 'new_sets', 'duration']
 
 
     def save(self, **kwargs):
         exercise_pk = self.context['exercise_pk']
-        custom_exercise = ExerciseCustom.objects.get(default_exercise_id=exercise_pk)
+        new_reps = self.validated_data.get('new_reps')
+        new_sets = self.validated_data.get('new_sets')
+        user = self.context['user']
+        duration = self.validated_data.get('duration')
 
-        custom_exercise.new_reps = self.validated_data['new_reps']
-        custom_exercise.new_sets = self.validated_data['new_sets']
-        custom_exercise.new_distance = self.validated_data['new_distance']
-        custom_exercise.duration = self.validated_data['duration']
+        custom_exercise, created = ExerciseCustom.objects.update_or_create(
+            default_exercise_id=exercise_pk,
+            created_by=user,
+            defaults={
+                'new_reps': new_reps,
+                'new_sets': new_sets,
+                'duration': self.validated_data.get('duration'),
+            }
+        )
+        
 
-        custom_exercise.save()
+
+        last_exercise_achievement = ExerciseAchievement.objects.filter(exercise_id=exercise_pk).last()
+       
+
+        new_reps = self.validated_data.get('new_reps')
+        new_sets = self.validated_data.get('new_sets')
+
+        create_new_achievement = False
+        create_new_achievement_robust = False
+
+        user = self.context['user']
+        if last_exercise_achievement:
+            if (new_reps and new_reps > last_exercise_achievement.achieved_reps) or \
+                (new_sets and new_sets > last_exercise_achievement.achieved_sets):
+                create_new_achievement = True
+        else:
+            create_new_achievement_robust = True
+
+
+        if create_new_achievement:
+            new_achivement = ExerciseAchievement.objects.create(
+                exercise_id=exercise_pk, 
+                profile=user.profile, 
+                duration=duration
+                )
+
+
+            if new_reps and new_reps > last_exercise_achievement.achieved_reps:
+                new_achivement.achieved_reps = new_reps
+            else:
+                new_achivement.achieved_reps = custom_exercise.new_reps
+
+            if new_sets and new_sets > last_exercise_achievement.achieved_sets:
+                new_achivement.achieved_sets = new_sets
+            else:
+                new_achivement.achieved_sets = custom_exercise.new_sets
+
+
+
+
+            new_achivement.save()
+        
+        if create_new_achievement_robust:
+            new_achivement = ExerciseAchievement.objects.create \
+            (exercise_id=exercise_pk, 
+             profile=user.profile, 
+             achieved_reps=new_reps,
+             achieved_sets=new_sets,
+             duration=duration)
+
+            new_achivement.save()
 
         return custom_exercise
-
 
 class AddExerciseToListSerializer(serializers.ModelSerializer):
     exercise_id = serializers.IntegerField()

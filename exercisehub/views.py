@@ -110,9 +110,9 @@ class MyExercisesViewSet(ModelViewSet):
     
     def get_serializer_context(self):
         if self.request.method == 'POST':
-            return {'plan_pk': self.kwargs['plan_pk']}
+            return {'plan_pk': self.kwargs['plan_pk'], 'user': self.request.user}
         if self.request.method == 'PATCH':
-             return {'exercise_pk': self.kwargs['pk'], 'weekday_pk': self.kwargs['plan_pk']}
+             return {'exercise_pk': self.kwargs['pk'], 'weekday_pk': self.kwargs['plan_pk'], 'user': self.request.user}
     
 
     def destroy(self, request, *args, **kwargs):
@@ -141,3 +141,5 @@ class AssessmentViewSet(ModelViewSet):
 
     def get_serializer_context(self):
         return {'profile_id': self.request.user.profile.id}
+    
+
