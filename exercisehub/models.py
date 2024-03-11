@@ -45,7 +45,7 @@ class ExerciseAchievement(models.Model):
 
 
 class Plan(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='plans')
     exercise = models.ManyToManyField(Exercise, related_name='plan', through='ExercisePlan')
 
 
@@ -82,5 +82,5 @@ class Assessment(models.Model):
 
 class Tracking(models.Model):
     completion_rate = models.DecimalField(max_digits=5, decimal_places=2)
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    profile = models.OneToOneField(Profile, on_delete=models.CASCADE)
 

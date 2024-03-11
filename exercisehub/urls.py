@@ -4,7 +4,7 @@ from rest_framework_nested import routers
 from . import views
 router = routers.DefaultRouter()
 
-router.register(prefix='profiles', viewset=views.ProfileViewSet)
+router.register(prefix='profiles', viewset=views.ProfileViewSet, basename='profiles')
 router.register(prefix='all-exercises', viewset=views.ExerciseViewSet)
 router.register(prefix='plans', viewset=views.WeekdayViewSet, basename='plans')
 

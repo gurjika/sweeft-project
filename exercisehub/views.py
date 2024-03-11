@@ -4,14 +4,16 @@ from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from exercisehub.serializers import AddExerciseToListSerializer, AddPlanToWeekDaySerializer, CustomExerciseSerializer, ExerciseSerializer, PlanSerializer, ProfileSerializer, WeekDaySerializer
+from django.db.models import Prefetch
+
+from exercisehub.serializers import AddExerciseToListSerializer, AddPlanToWeekDaySerializer, CustomExerciseSerializer, ExerciseSerializer, PlanSerializer, ProfileSerializer, SimpleProfileSerializer, WeekDaySerializer
 from .models import Exercise, Plan, Profile, Weekday
 # Create your views here.
 
 
-class ProfileViewSet(ModelViewSet):
-    queryset = Profile.objects.all()
+class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
     serializer_class = ProfileSerializer
+
 
 
     def get_permissions(self):
@@ -20,14 +22,36 @@ class ProfileViewSet(ModelViewSet):
         return [IsAdminUser()]
     
 
-    @action(detail=False, methods=['GET', 'PUT'], permission_classes=[IsAuthenticated])
-    def me(self, request):      
-        profile = Profile.objects.get(user_id=request.user.id)
+    def get_queryset(self):
+        plan_prefetch = Prefetch(
+        'plans',
+        queryset=Plan.objects.prefetch_related(
+            Prefetch(
+                'exercise',
+                queryset=Exercise.objects.prefetch_related(
+                    'muscles'
+                ).select_related('custom_exercise') 
+            )
+            )
+        )
+        profiles = Profile.objects.select_related('user').prefetch_related(plan_prefetch)
+        return profiles
+    
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return ProfileSerializer
+        return SimpleProfileSerializer
+
+
+    @action(detail=False, methods=['GET', 'PATCH'], permission_classes=[IsAuthenticated])
+    def me(self, request):
+      
+        profile = self.get_queryset().filter(user=self.request.user).first()
 
         if request.method == 'GET':
             serializer = ProfileSerializer(profile)
             return Response(serializer.data)
-        elif request.method == 'PUT':
+        elif request.method == 'PATCH':
             serializer = ProfileSerializer(profile, data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
