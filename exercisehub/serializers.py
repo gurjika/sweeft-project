@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-from .models import Exercise, ExerciseCustom, ExercisePlan, Muscle, Plan, PlanWeekday, Profile, Weekday
+from .models import Exercise, ExerciseCustom, ExercisePlan, Muscle, Plan, Profile, Weekday
 
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -60,7 +60,7 @@ class PlanSerializer(serializers.ModelSerializer):
         fields = ['id', 'exercise']
 
 class WeekDaySerializer(serializers.ModelSerializer):
-    plan = PlanSerializer(many=True)
+    plan = PlanSerializer()
     class Meta:
         model = Weekday
         fields = ['id', 'weekday', 'plan']
@@ -106,3 +106,23 @@ class AddExerciseToListSerializer(serializers.ModelSerializer):
         return exercise_plan_object
         
     
+class AddPlanToWeekDaySerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField()
+    plan_id = serializers.IntegerField()
+    class Meta:
+        model = Weekday
+        fields = ['id', 'plan_id']
+
+
+    def create(self, validated_data):
+        weekday_id = self.validated_data['id']
+        plan_id = self.validated_data['plan_id']
+        weekday = Weekday.objects.get(pk=weekday_id)
+        plan, created = Plan.objects.get_or_create(id=plan_id)
+
+        weekday.plan = plan
+        weekday.save()
+        
+
+        return weekday
+

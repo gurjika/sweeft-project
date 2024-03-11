@@ -4,7 +4,7 @@ from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from exercisehub.serializers import AddExerciseToListSerializer, CustomExerciseSerializer, ExerciseSerializer, PlanSerializer, ProfileSerializer, WeekDaySerializer
+from exercisehub.serializers import AddExerciseToListSerializer, AddPlanToWeekDaySerializer, CustomExerciseSerializer, ExerciseSerializer, PlanSerializer, ProfileSerializer, WeekDaySerializer
 from .models import Exercise, Plan, Profile, Weekday
 # Create your views here.
 
@@ -43,14 +43,30 @@ class ExerciseViewSet(ModelViewSet):
             return [AllowAny()]
         return [IsAdminUser()]
     
-class WeekdayViewSet(ListModelMixin, GenericViewSet, RetrieveModelMixin):
+class WeekdayViewSet(ListModelMixin, RetrieveModelMixin, DestroyModelMixin, GenericViewSet, CreateModelMixin):
 
     
-    serializer_class = WeekDaySerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Weekday.objects.filter(plan__user_id=self.request.user.id).all()
+    
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return WeekDaySerializer
+        if self.request.method == 'POST':
+            return AddPlanToWeekDaySerializer
+    
+
+    def destroy(self, request, *args, **kwargs):
+        weekday = Weekday.objects.get(id=self.kwargs['pk'])
+        #TODO weekdays have one plan only, while plans may have many weekdays
+
+        weekday.plan = None
+        weekday.save()
+        return Response(f'plan removed on {weekday.weekday}')
+        
     
 
 class MyExercisesViewSet(ModelViewSet):

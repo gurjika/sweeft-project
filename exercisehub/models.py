@@ -42,28 +42,23 @@ class ExerciseAchievement(models.Model):
     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
 
 
+
+
+class Plan(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    exercise = models.ManyToManyField(Exercise, related_name='plan', through='ExercisePlan')
+
+
+
 class Weekday(models.Model):
     weekday = models.CharField(max_length=255)
+    plan = models.ForeignKey(Plan, related_name='weekdays', on_delete=models.CASCADE, null=True)
 
     def __str__(self) -> str:
         return self.weekday
     
     class Meta:
         ordering = ['id']
-
-
-class Plan(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    exercise = models.ManyToManyField(Exercise, related_name='plan', through='ExercisePlan')
-    weekday = models.ManyToManyField(Weekday, through='PlanWeekday', related_name='plan')
-
-
-
-
-class PlanWeekday(models.Model):
-    plan = models.ForeignKey(Plan, on_delete=models.CASCADE)
-    weekday = models.ForeignKey(Weekday, on_delete=models.CASCADE)
-
 
 
 class ExercisePlan(models.Model):
