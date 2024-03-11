@@ -6,8 +6,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Prefetch
 
-from exercisehub.serializers import AddExerciseToListSerializer, AddPlanToWeekDaySerializer, AssessmentSerializer, CustomExerciseSerializer, ExerciseSerializer, FullAssessmentSerializer, PlanSerializer, ProfileSerializer, SimpleProfileSerializer, WeekDaySerializer
-from .models import Assessment, Exercise, Plan, Profile, Weekday
+from exercisehub.serializers import AddExerciseToListSerializer, AddPlanToWeekDaySerializer, AssessmentSerializer, CustomExerciseSerializer, ExerciseAchievementSerializer, ExerciseSerializer, FullAssessmentSerializer, PlanSerializer, ProfileAchievementsSerializer, ProfileSerializer, SimpleProfileSerializer, WeekDaySerializer
+from .models import Assessment, Exercise, ExerciseAchievement, Plan, Profile, Weekday
 # Create your views here.
 
 
@@ -56,6 +56,15 @@ class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Gener
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
+        
+    @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated])
+    def achievement(self, request):
+        queryset = Profile.objects.filter(pk=request.user.profile.pk).all()
+        if request.method == 'GET':
+            serializer = ProfileAchievementsSerializer(queryset, many=True)
+            return Response(serializer.data)
+
+
 
 
 class ExerciseViewSet(ModelViewSet):

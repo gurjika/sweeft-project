@@ -20,8 +20,8 @@ class Muscle(models.Model):
 class Exercise(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
-    start_reps = models.PositiveSmallIntegerField(null=True)
-    start_sets = models.PositiveSmallIntegerField(null=True)
+    reps = models.PositiveSmallIntegerField(null=True)
+    sets = models.PositiveSmallIntegerField(null=True)
     duration = models.PositiveSmallIntegerField()
     muscles = models.ManyToManyField(Muscle, through='MuscleExercise')
 
@@ -40,7 +40,7 @@ class ExerciseAchievement(models.Model):
     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE, related_name='exercises')
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='achievements')
     duration = models.PositiveSmallIntegerField()
-
+    date_added = models.DateField(auto_now_add=True)
 
 
 

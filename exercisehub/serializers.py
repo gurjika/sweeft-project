@@ -14,13 +14,13 @@ class ExerciseSerializer(serializers.ModelSerializer):
     muscles = MuscleSerializer(many=True, read_only=True)
     id = serializers.IntegerField(read_only=True)
 
-    start_reps = serializers.SerializerMethodField(method_name='return_reps')
-    start_sets = serializers.SerializerMethodField(method_name='return_sets')
+    reps = serializers.SerializerMethodField(method_name='return_reps')
+    sets = serializers.SerializerMethodField(method_name='return_sets')
     duration = serializers.SerializerMethodField(method_name='return_duration')
 
     class Meta:
         model = Exercise
-        fields = ['id','name', 'description', 'start_reps', 'start_sets', 'duration', 'muscles']
+        fields = ['id','name', 'description', 'reps', 'sets', 'duration', 'muscles']
 
     def has_custom_exercise(self, exercise):
         if hasattr(exercise, 'custom_exercise') and exercise.custom_exercise is not None:
@@ -56,7 +56,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     plans = PlanSerializer(many=True)
     class Meta:
         model = Profile
-        fields = ['id', 'user_id', 'age', 'weight', 'goal_weight', 'height', 'plans']
+        fields = ['id', 'user_id', 'age', 'weight_now', 'start_weight', 'goal_weight', 'height', 'plans']
 
 class WeekDaySerializer(serializers.ModelSerializer):
     plan = PlanSerializer()
@@ -100,6 +100,8 @@ class CustomExerciseSerializer(serializers.ModelSerializer):
         create_new_achievement = False
         create_new_achievement_robust = False
 
+      
+
         user = self.context['user']
         if last_exercise_achievement:
             if (new_reps and new_reps > last_exercise_achievement.achieved_reps) or \
@@ -110,27 +112,23 @@ class CustomExerciseSerializer(serializers.ModelSerializer):
 
 
         if create_new_achievement:
-            new_achivement = ExerciseAchievement.objects.create(
+            new_achivement = {
+                'achieved_sets': None,
+                'achieved_reps': None
+            }
+
+            if new_reps * new_sets > last_exercise_achievement.achieved_reps * last_exercise_achievement.achieved_sets:
+                new_achivement['achieved_sets'] = new_sets
+                new_achivement['achieved_reps'] = new_reps
+
+                created_achivement = ExerciseAchievement.objects.create(
                 exercise_id=exercise_pk, 
                 profile=user.profile, 
-                duration=duration
+                duration=duration,
+                **new_achivement
                 )
 
-
-            if new_reps and new_reps > last_exercise_achievement.achieved_reps:
-                new_achivement.achieved_reps = new_reps
-            else:
-                new_achivement.achieved_reps = custom_exercise.new_reps
-
-            if new_sets and new_sets > last_exercise_achievement.achieved_sets:
-                new_achivement.achieved_sets = new_sets
-            else:
-                new_achivement.achieved_sets = custom_exercise.new_sets
-
-
-
-
-            new_achivement.save()
+                created_achivement.save()
         
         if create_new_achievement_robust:
             new_achivement = ExerciseAchievement.objects.create \
@@ -188,13 +186,13 @@ class AddPlanToWeekDaySerializer(serializers.ModelSerializer):
 class SimpleProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
-        fields = ['age', 'weight', 'goal_weight', 'height']
+        fields = ['age', 'weight_now', 'goal_weight', 'height']
 
 
 class AssessmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Assessment
-        fields = ['weight', 'weight_added']
+        fields = ['weight_now', 'weight_added']
 
 
 
@@ -233,3 +231,27 @@ class FullAssessmentSerializer(serializers.ModelSerializer):
         profile.save()
 
         return profile
+    
+class SimpleExerciseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Exercise
+        fields = ['id', 'name']
+    
+
+class ExerciseAchievementSerializer(serializers.ModelSerializer):
+    exercise = SimpleExerciseSerializer()
+    class Meta:
+        model = ExerciseAchievement
+        fields = ['id', 'date_added', 'achieved_reps', 'achieved_sets', 'duration', 'exercise']
+
+    
+class ProfileAchievementsSerializer(serializers.ModelSerializer):
+    achievements = ExerciseAchievementSerializer(many=True)
+    class Meta:
+        model = Profile
+        fields = ['achievements']
+
+
+
+
+    
