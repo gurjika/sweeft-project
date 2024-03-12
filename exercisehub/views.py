@@ -5,9 +5,9 @@ from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Prefetch
-
-from exercisehub.serializers import AddExerciseToListSerializer, AddPlanToWeekDaySerializer, AssessmentSerializer, CustomExerciseSerializer, ExerciseAchievementSerializer, ExerciseSerializer, FullAssessmentSerializer, PlanSerializer, ProfileAchievementsSerializer, ProfileSerializer, SimpleProfileSerializer, UploadExerciseSerializer, WeekDaySerializer
-from .models import Assessment, Exercise, ExerciseAchievement, Plan, Profile, Weekday
+from django.contrib.contenttypes.models import ContentType
+from exercisehub.serializers import AddExerciseToListSerializer, AddPlanToWeekDaySerializer, AssessmentSerializer, CustomExerciseSerializer, DefaultExerciseSerializer, ExerciseAchievementSerializer, CustomOrExerciseSerializer, FullAssessmentSerializer, PlanSerializer, ProfileAchievementsSerializer, ProfileSerializer, SimpleProfileSerializer, UploadExerciseSerializer, WeekDaySerializer
+from .models import Assessment, Exercise, ExerciseAchievement, Plan, Profile, Weekday, Tracking
 from datetime import datetime
 # Create your views here.
 
@@ -53,7 +53,10 @@ class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Gener
         
     @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated])
     def achievement(self, request):
-        queryset = Profile.objects.filter(pk=request.user.profile.pk).all()
+        
+
+
+        queryset = Profile.objects.filter(user=self.request.user)
         if request.method == 'GET':
             serializer = ProfileAchievementsSerializer(queryset, many=True)
             return Response(serializer.data)
@@ -62,8 +65,8 @@ class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Gener
 
 
 class ExerciseViewSet(ModelViewSet):
-    queryset = Exercise.objects.all()
-    serializer_class = ExerciseSerializer
+    queryset = Exercise.objects.all().prefetch_related('muscles')
+    serializer_class = DefaultExerciseSerializer
 
     def get_permissions(self):
         if self.request.method == 'GET':
@@ -76,7 +79,18 @@ class WeekdayViewSet(ListModelMixin, RetrieveModelMixin, DestroyModelMixin, Gene
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Weekday.objects.select_related('plan').filter(plan__profile__user_id=self.request.user.id).all()
+
+
+        queryset = Weekday.objects.prefetch_related(
+            'plan',  
+             
+            Prefetch('plan__exercise', queryset=Exercise.objects.prefetch_related(
+                'muscles', 
+                'custom_exercise', 
+            )),
+        ).prefetch_related('plan__completion_rates').prefetch_related('plan__weekdays').all()
+
+        return queryset
     
 
     def get_serializer_class(self):
@@ -100,17 +114,19 @@ class WeekdayViewSet(ListModelMixin, RetrieveModelMixin, DestroyModelMixin, Gene
     
 
 class MyExercisesViewSet(ModelViewSet):
+
+    permission_classes = [IsAuthenticated]
     http_method_names = ['patch', 'get', 'delete', 'head', 'options', 'post']
 
-    serializer_class = ExerciseSerializer
+    serializer_class = CustomOrExerciseSerializer
 
     def get_queryset(self):
         plan = Weekday.objects.get(id=self.kwargs['weekday_pk']).plan
-        return Exercise.objects.filter(plan__profile__user=self.request.user, plan=plan).all()
+        return Exercise.objects.filter(plan__profile__user=self.request.user, plan=plan).select_related('custom_exercise').prefetch_related('muscles').all()
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
-            return ExerciseSerializer
+            return CustomOrExerciseSerializer
         if self.request.method == 'POST':
             return AddExerciseToListSerializer
         return CustomExerciseSerializer
@@ -131,7 +147,8 @@ class MyExercisesViewSet(ModelViewSet):
     
 
 
-class AssessmentViewSet(ModelViewSet):
+class AssessmentViewSet(ListModelMixin, GenericViewSet, CreateModelMixin):
+    permission_classes = [IsAuthenticated]
     serializer_class = FullAssessmentSerializer
     def get_queryset(self):
         queryset = Profile.objects.filter(user=self.request.user).prefetch_related('assessments')
@@ -152,7 +169,7 @@ class AssessmentViewSet(ModelViewSet):
 
 
 class ExerciseCompletionViewSet(ListModelMixin, CreateModelMixin, GenericViewSet):
-
+    permission_classes = [IsAuthenticated]
     def get_serializer_class(self):
         if self.request.method == 'GET':
             return WeekDaySerializer

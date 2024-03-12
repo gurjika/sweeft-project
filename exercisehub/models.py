@@ -50,7 +50,6 @@ class ExerciseAchievement(models.Model):
 class Plan(models.Model):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='plans')
     exercise = models.ManyToManyField(Exercise, related_name='plan', through='ExercisePlan')
-    completion_rates = GenericRelation('Tracking', related_query_name='trackings')
 
 
 
@@ -81,12 +80,13 @@ class Assessment(models.Model):
     weight_added = models.DateField(auto_now_add=True)
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='assessments')
 
+    class Meta:
+        ordering = ['-weight_added']
+
 
 class Tracking(models.Model):
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey('content_type', 'object_id')
-    completion_percentage = models.DecimalField(max_digits=6, decimal_places=2)
+    plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name='completion_rates')
+    completion_percentage = models.DecimalField(max_digits=5, decimal_places=2)
 
 
 class CompletedExercise(models.Model):

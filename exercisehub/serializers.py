@@ -5,12 +5,19 @@ from .models import Assessment, CompletedExercise, Exercise, ExerciseAchievement
 
 
 
+
 class MuscleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Muscle
         fields = ['muscle']
 
-class ExerciseSerializer(serializers.ModelSerializer):
+class DefaultExerciseSerializer(serializers.ModelSerializer):
+    muscles = MuscleSerializer(many=True)
+    class Meta:
+        model = Exercise
+        fields = ['id', 'name', 'description', 'reps', 'sets', 'duration', 'muscles']
+
+class CustomOrExerciseSerializer(serializers.ModelSerializer):
     muscles = MuscleSerializer(many=True, read_only=True)
     id = serializers.IntegerField(read_only=True)
 
@@ -65,7 +72,7 @@ class PlanTrackingsSerializer(serializers.ModelSerializer):
      
     
 class PlanSerializer(serializers.ModelSerializer):
-    exercise = ExerciseSerializer(many=True)
+    exercise = CustomOrExerciseSerializer(many=True)
     completion_rates = PlanTrackingsSerializer()
     class Meta:
         model = Plan
@@ -238,7 +245,7 @@ class FullAssessmentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ['assessments', 'start_weight', 'weight_now', 'weight_gained', 'weight_lost']
+        fields = ['assessments', 'start_weight', 'weight_now', 'weight_gained', 'weight_lost', 'goal_weight']
 
 
     def returns_weight_gained(self, profile):
@@ -270,7 +277,6 @@ class FullAssessmentSerializer(serializers.ModelSerializer):
     
 
 class ExerciseAchievementSerializer(serializers.ModelSerializer):
-    exercise = SimpleExerciseSerializer()
     class Meta:
         model = ExerciseAchievement
         fields = ['id', 'date_added', 'achieved_reps', 'achieved_sets', 'duration', 'exercise']
@@ -320,7 +326,7 @@ class UploadExerciseSerializer(serializers.ModelSerializer):
             completion_percentage = 100
    
         Tracking.objects.create(
-            content_object=plan, 
+            plan=plan,
             completion_percentage=completion_percentage
         )
 
