@@ -3,6 +3,9 @@ from rest_framework.mixins import ListModelMixin, CreateModelMixin, RetrieveMode
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.decorators import action
+from django.db.models import Subquery
+from rest_framework.exceptions import NotFound
+
 from rest_framework.response import Response
 from django.db.models import Prefetch
 from django.contrib.contenttypes.models import ContentType
@@ -78,23 +81,31 @@ class WeekdayViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet, Destroy
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Weekday.objects.filter(plans__profile=self.request.user.profile)
+        queryset = Plan.objects.filter(profile=self.request.user.profile)
+        
+
         return queryset
     
-
+    def get_object(self):
+        try:
+            Plan.objects.filter(profile=self.request.user.profile).filter(weekday_id=self.kwargs['pk']).exists()
+            return Plan.objects.get(profile=self.request.user.profile, weekday_id=self.kwargs['pk'])
+        except Plan.DoesNotExist:
+            raise NotFound(detail='Weekday has no plans', code=404)
+    
     def get_serializer_class(self):
        
         if self.request.method == 'POST':
             return CreatePlanSerializer
-
-        return WeekDaySerializer
+        return PlanSerializer
     
     def get_serializer_context(self):
-        return {'profile_id': self.request.user.profile.id}
+        context = {'user': self.request.user, 'profile_id': self.request.user.profile.id}
+        return context
     
 
     def destroy(self, request, *args, **kwargs):
-        plan = Plan.objects.get(weekday_id=self.kwargs['pk'])
+        plan = Plan.objects.get(weekday_id=self.kwargs['pk'], profile=self.request.user.profile)
         weekday = plan.weekday
         plan.weekday = None
         plan.save()
@@ -112,7 +123,7 @@ class MyExercisesViewSet(ModelViewSet):
 
     def get_queryset(self):
         plan = Plan.objects.get(weekday_id=self.kwargs['weekday_pk'], profile__user=self.request.user)
-        return Exercise.objects.filter(plan__profile__user=self.request.user, plan=plan).select_related('custom_exercise').prefetch_related('muscles').all()
+        return Exercise.objects.filter(plan=plan).prefetch_related('muscles').prefetch_related('custom_exercise').all()
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -122,11 +133,19 @@ class MyExercisesViewSet(ModelViewSet):
         return CustomExerciseSerializer
     
     def get_serializer_context(self):
+        context = {'user': self.request.user}
+
+        
+
+
+
         if self.request.method == 'POST':
-            return {'weekday_pk': self.kwargs['weekday_pk'], 'user': self.request.user, }
+            context['weekday_pk'] = self.kwargs['weekday_pk']
         if self.request.method == 'PATCH':
-             return {'exercise_pk': self.kwargs['pk'], 'weekday_pk': self.kwargs['weekday_pk'], 'user': self.request.user}
-    
+             context['exercise_pk'] = self.kwargs['pk']
+             context['weekday_pk'] =  self.kwargs['weekday_pk']
+            
+        return context
 
     def destroy(self, request, *args, **kwargs):
         plan = Plan.objects.get(weekday_id=self.kwargs['weekday_pk'], profile__user=self.request.user)
@@ -177,6 +196,7 @@ class ExerciseCompletionViewSet(ListModelMixin, CreateModelMixin, GenericViewSet
 
 class MyPlansViewSet(ModelViewSet):
 
+    http_method_names = ['get', 'post', 'delete', 'patch', 'head', 'options']
 
 
     def get_queryset(self):
@@ -185,7 +205,10 @@ class MyPlansViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.request.method == 'GET':
             return PlanSerializer
-        return AddPlanToWeekDaySerializer
+        if self.request.method == 'PATCH':
+            return AddPlanToWeekDaySerializer
+        if self.request.method == 'POST':
+            return CreatePlanSerializer
     
 
     def get_serializer_context(self):

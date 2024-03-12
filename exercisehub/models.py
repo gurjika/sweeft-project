@@ -32,7 +32,7 @@ class Exercise(models.Model):
 
 class ExerciseCustom(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    default_exercise = models.OneToOneField(Exercise, on_delete=models.PROTECT, related_name='custom_exercise')
+    default_exercise = models.ForeignKey(Exercise, on_delete=models.PROTECT, related_name='custom_exercise')
     new_reps = models.PositiveSmallIntegerField(null=True)
     new_sets = models.PositiveSmallIntegerField(null=True)
     duration = models.PositiveSmallIntegerField()
@@ -48,7 +48,7 @@ class ExerciseAchievement(models.Model):
 
 
 class Plan(models.Model):
-    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='plans')
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='profile_plans')
     weekday = models.ForeignKey('Weekday', on_delete=models.CASCADE, related_name='plans', null=True)
     exercise = models.ManyToManyField(Exercise, related_name='plan', through='ExercisePlan')
 
