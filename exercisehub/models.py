@@ -117,7 +117,10 @@ class CompletedExercise(models.Model):
     sets = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(12)])
     duration = models.PositiveSmallIntegerField(validators=[MinValueValidator(4), MaxValueValidator(60)])
     completed_by = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='completed_exercises')
+    time_completed = models.DateField(auto_now_add=True)
 
+    class Meta:
+        ordering = ['-time_completed']
 
     def __str__(self) -> str:
         return self.exercise.name

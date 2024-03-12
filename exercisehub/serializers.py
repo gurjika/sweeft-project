@@ -381,4 +381,4 @@ class HistorySerializer(serializers.ModelSerializer):
     exercise = SimpleExerciseSerializer()
     class Meta:
         model = CompletedExercise
-        fields = ['completed_by', 'reps', 'sets', 'duration', 'exercise']
+        fields = ['completed_by', 'reps', 'sets', 'duration', 'time_completed', 'exercise']

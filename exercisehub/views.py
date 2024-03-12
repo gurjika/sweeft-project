@@ -32,6 +32,9 @@ class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Gener
         queryset=Plan.objects.prefetch_related('exercise'))
 
         profiles = Profile.objects.select_related('user').prefetch_related(plan_prefetch)
+
+        if not self.request.user.is_staff:
+            profiles = profiles.filter(user=self.request.user)
         return profiles
     
     def get_serializer_class(self):
