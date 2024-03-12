@@ -283,7 +283,7 @@ class UploadExerciseSerializer(serializers.ModelSerializer):
         sets = validated_data['sets']
         exercise_id = validated_data['exercise_id']
         duration = validated_data['duration']
-        completed_exercise = CompletedExercise.objects.create(exercise_id=exercise_id, reps=reps, sets=sets, duration=duration)
+        completed_exercise = CompletedExercise.objects.create(exercise_id=exercise_id, reps=reps, sets=sets, duration=duration, completed_by=user.profile)
         completed_exercise.save()
         plan = Plan.objects.get(weekday__weekday=self.context['weekday'], profile__user=user)
 
@@ -375,3 +375,10 @@ class CreatePlanSerializer(serializers.ModelSerializer):
         
         plan = Plan.objects.create(profile_id=self.context['profile_id'])
         return plan
+    
+
+class HistorySerializer(serializers.ModelSerializer):
+    exercise = SimpleExerciseSerializer()
+    class Meta:
+        model = CompletedExercise
+        fields = ['completed_by', 'reps', 'sets', 'duration', 'exercise']

@@ -5,11 +5,11 @@ from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.decorators import action
 from django.db.models import Subquery
 from rest_framework.exceptions import NotFound
-
+from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from django.db.models import Prefetch
 from django.contrib.contenttypes.models import ContentType
-from exercisehub.serializers import AddExerciseToListSerializer, AddPlanToWeekDaySerializer, AssessmentSerializer, CreatePlanSerializer, CustomExerciseSerializer, DefaultExerciseSerializer, ExerciseAchievementSerializer, CustomOrExerciseSerializer, FullAssessmentSerializer, PlanSerializer, ProfileAchievementsSerializer, ProfileSerializer, SimpleProfileSerializer, UploadExerciseSerializer, WeekDaySerializer
+from exercisehub.serializers import AddExerciseToListSerializer, AddPlanToWeekDaySerializer, AssessmentSerializer, CreatePlanSerializer, CustomExerciseSerializer, DefaultExerciseSerializer, ExerciseAchievementSerializer, CustomOrExerciseSerializer, FullAssessmentSerializer, HistorySerializer, PlanSerializer, ProfileAchievementsSerializer, ProfileSerializer, SimpleProfileSerializer, UploadExerciseSerializer, WeekDaySerializer
 from .models import Assessment, CompletedExercise, Exercise, ExerciseAchievement, ExerciseCustom, Plan, Profile, Weekday, Tracking
 from datetime import datetime
 # Create your views here.
@@ -64,6 +64,13 @@ class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Gener
             serializer = ProfileAchievementsSerializer(queryset, many=True)
             return Response(serializer.data)
         
+    @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated])
+    def history(self, request):
+        queryset = CompletedExercise.objects.filter(completed_by=self.request.user.profile).select_related('exercise')
+        
+        if request.method == 'GET':
+            serializer = HistorySerializer(queryset, many=True)
+            return Response(serializer.data)
 
 
 
@@ -73,6 +80,9 @@ class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Gener
 class ExerciseViewSet(ModelViewSet):
     queryset = Exercise.objects.all().prefetch_related('muscles')
     serializer_class = DefaultExerciseSerializer
+    filter_backends = [SearchFilter]
+    search_fields = ['duration', 'muscles__muscle']
+
 
     def get_permissions(self):
         if self.request.method == 'GET':
