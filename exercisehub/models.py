@@ -13,8 +13,7 @@ class Profile(models.Model):
     height = models.DecimalField(max_digits=5, decimal_places=2, null=True)
     goal_weight = models.DecimalField(max_digits=5, decimal_places=2, null=True)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    completion_rates = GenericRelation('Tracking', related_query_name='profile_trackings')
-
+    overall_completion_rate = models.DecimalField(max_digits=5, decimal_places=2)
 
 class Muscle(models.Model):
     muscle = models.CharField(max_length=255)
@@ -95,3 +94,4 @@ class CompletedExercise(models.Model):
     reps = models.PositiveSmallIntegerField()
     sets = models.PositiveSmallIntegerField()
     duration = models.PositiveSmallIntegerField()
+

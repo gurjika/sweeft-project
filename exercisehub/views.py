@@ -26,15 +26,8 @@ class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Gener
     def get_queryset(self):
         plan_prefetch = Prefetch(
         'plans',
-        queryset=Plan.objects.prefetch_related(
-            Prefetch(
-                'exercise',
-                queryset=Exercise.objects.prefetch_related(
-                    'muscles'
-                ).select_related('custom_exercise') 
-            )
-            )
-        )
+        queryset=Plan.objects.prefetch_related().prefetch_related('weekdays').prefetch_related('exercise'))
+
         profiles = Profile.objects.select_related('user').prefetch_related(plan_prefetch)
         return profiles
     
@@ -148,7 +141,6 @@ class AssessmentViewSet(ModelViewSet):
     
     @action(detail=False)
     def assessment(self, request):
-
         if self.request.method == 'GET':
             return AssessmentSerializer
         
@@ -173,6 +165,5 @@ class ExerciseCompletionViewSet(ListModelMixin, CreateModelMixin, GenericViewSet
     
 
     def get_serializer_context(self):
-        weekday = datetime.now().strftime('%A')
-        weekday1 = Weekday.objects.get(weekday=weekday, plan__profile=self.request.user.profile)
-        return {'plan': weekday1.plan}
+        weekday = self.get_queryset().first()
+        return {'plan': weekday.plan}

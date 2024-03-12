@@ -71,11 +71,24 @@ class PlanSerializer(serializers.ModelSerializer):
         model = Plan
         fields = ['id', 'exercise', 'completion_rates']
 
+
+class SimpleExerciseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Exercise
+        fields = ['id', 'name']
+
+class SimplePlanSerializer(serializers.ModelSerializer):
+    exercise = SimpleExerciseSerializer(many=True)
+    class Meta:
+        model = Plan
+        fields = ['id', 'exercise', 'weekdays']
+
+
 class ProfileSerializer(serializers.ModelSerializer):
-    plans = PlanSerializer(many=True)
+    plans = SimplePlanSerializer(many=True)
     class Meta:
         model = Profile
-        fields = ['id', 'user_id', 'age', 'weight_now', 'start_weight', 'goal_weight', 'height', 'plans']
+        fields = ['id', 'user_id', 'age', 'weight_now', 'start_weight', 'goal_weight', 'height', 'plans', 'overall_completion_rate']
 
 class WeekDaySerializer(serializers.ModelSerializer):
     plan = PlanSerializer()
@@ -213,7 +226,7 @@ class SimpleProfileSerializer(serializers.ModelSerializer):
 class AssessmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Assessment
-        fields = ['weight_now', 'weight_added']
+        fields = ['weight', 'weight_added']
 
 
 
@@ -231,7 +244,7 @@ class FullAssessmentSerializer(serializers.ModelSerializer):
     def returns_weight_gained(self, profile):
         weight_gained = profile.weight_now - profile.start_weight
         
-        if weight_gained > 0:
+        if weight_gained < 0:
             return 0
         return weight_gained
     
@@ -253,10 +266,7 @@ class FullAssessmentSerializer(serializers.ModelSerializer):
 
         return profile
     
-class SimpleExerciseSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Exercise
-        fields = ['id', 'name']
+
     
 
 class ExerciseAchievementSerializer(serializers.ModelSerializer):
@@ -304,18 +314,17 @@ class UploadExerciseSerializer(serializers.ModelSerializer):
 
         
 
-        completion_percentage = 100 * ((reps * sets) / (goal_reps * goal_sets)) / plan.exercise.count()
-        print('*********')
-        print(reps * sets)
-        print()
-        print(goal_sets * goal_reps)
-        print()
-        print(plan.exercise.count())
-        print('*********')
+        completion_percentage = 100 * ((reps * sets) / (goal_reps * goal_sets))
+
+        if completion_percentage > 100:
+            completion_percentage = 100
+   
         Tracking.objects.create(
             content_object=plan, 
             completion_percentage=completion_percentage
         )
+
+
 
 
         return completed_exercise
