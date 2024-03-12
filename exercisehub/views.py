@@ -81,7 +81,7 @@ class WeekdayViewSet(ListModelMixin, RetrieveModelMixin, DestroyModelMixin, Gene
     def get_queryset(self):
 
 
-        queryset = Weekday.objects.prefetch_related(
+        queryset = Weekday.objects.filter(plan__profile=self.request.user.profile).prefetch_related(
             'plan',  
              
             Prefetch('plan__exercise', queryset=Exercise.objects.prefetch_related(
@@ -177,10 +177,19 @@ class ExerciseCompletionViewSet(ListModelMixin, CreateModelMixin, GenericViewSet
 
     def get_queryset(self):
         weekday = datetime.now().strftime('%A')
-        queryset = Weekday.objects.filter(weekday=weekday, plan__profile=self.request.user.profile)
+
+        queryset = Weekday.objects.filter(plan__profile=self.request.user.profile, weekday=weekday).prefetch_related(
+            'plan',  
+             
+            Prefetch('plan__exercise', queryset=Exercise.objects.prefetch_related(
+                'muscles', 
+                'custom_exercise', 
+            )),
+        ).prefetch_related('plan__completion_rates').prefetch_related('plan__weekdays').all()
+
         return queryset
     
 
     def get_serializer_context(self):
-        weekday = self.get_queryset().first()
-        return {'plan': weekday.plan}
+        weekday = datetime.now().strftime('%A')
+        return {'weekday': weekday}

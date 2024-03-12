@@ -304,7 +304,7 @@ class UploadExerciseSerializer(serializers.ModelSerializer):
         duration = validated_data['duration']
         completed_exercise = CompletedExercise.objects.create(exercise_id=exercise_id, reps=reps, sets=sets, duration=duration)
         completed_exercise.save()
-        plan = self.context['plan']
+        plan = Weekday.objects.get(weekday=self.context['weekday']).plan
 
         plan_exercises = plan.exercise
 
