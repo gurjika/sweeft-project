@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Prefetch
 from django.contrib.contenttypes.models import ContentType
-from exercisehub.serializers import AddExerciseToListSerializer, AddPlanToWeekDaySerializer, AssessmentSerializer, CustomExerciseSerializer, DefaultExerciseSerializer, ExerciseAchievementSerializer, CustomOrExerciseSerializer, FullAssessmentSerializer, PlanSerializer, ProfileAchievementsSerializer, ProfileSerializer, SimpleProfileSerializer, UploadExerciseSerializer, WeekDaySerializer
+from exercisehub.serializers import AddExerciseToListSerializer, AddPlanToWeekDaySerializer, AssessmentSerializer, CreatePlanSerializer, CustomExerciseSerializer, DefaultExerciseSerializer, ExerciseAchievementSerializer, CustomOrExerciseSerializer, FullAssessmentSerializer, PlanSerializer, ProfileAchievementsSerializer, ProfileSerializer, SimpleProfileSerializer, UploadExerciseSerializer, WeekDaySerializer
 from .models import Assessment, Exercise, ExerciseAchievement, Plan, Profile, Weekday, Tracking
 from datetime import datetime
 # Create your views here.
@@ -26,7 +26,7 @@ class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Gener
     def get_queryset(self):
         plan_prefetch = Prefetch(
         'plans',
-        queryset=Plan.objects.prefetch_related().prefetch_related('weekdays').prefetch_related('exercise'))
+        queryset=Plan.objects.prefetch_related('exercise'))
 
         profiles = Profile.objects.select_related('user').prefetch_related(plan_prefetch)
         return profiles
@@ -73,30 +73,25 @@ class ExerciseViewSet(ModelViewSet):
             return [AllowAny()]
         return [IsAdminUser()]
     
-class WeekdayViewSet(ListModelMixin, RetrieveModelMixin, DestroyModelMixin, GenericViewSet, CreateModelMixin):
-
+class WeekdayViewSet(ModelViewSet):
+    http_method_names = ['get', 'patch', 'head', 'options', 'post']
     
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
 
 
-        queryset = Weekday.objects.filter(plan__profile=self.request.user.profile).prefetch_related(
-            'plan',  
-             
-            Prefetch('plan__exercise', queryset=Exercise.objects.prefetch_related(
-                'muscles', 
-                'custom_exercise', 
-            )),
-        ).prefetch_related('plan__completion_rates').prefetch_related('plan__weekdays').all()
+        queryset = Plan.objects.filter(profile=self.request.user.profile)
 
         return queryset
     
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
-            return WeekDaySerializer
+            return PlanSerializer
         if self.request.method == 'POST':
+            return CreatePlanSerializer
+        if self.request.method == 'PATCH':
             return AddPlanToWeekDaySerializer
     
     def get_serializer_context(self):
@@ -104,12 +99,12 @@ class WeekdayViewSet(ListModelMixin, RetrieveModelMixin, DestroyModelMixin, Gene
     
 
     def destroy(self, request, *args, **kwargs):
-        weekday = Weekday.objects.get(id=self.kwargs['pk'])
-        #TODO weekdays have one plan only, while plans may have many weekdays
-
-        weekday.plan = None
-        weekday.save()
-        return Response(f'plan removed on {weekday.weekday}')
+        plan = Plan.objects.get(weekday_id=self.kwargs['pk'])
+        weekday = plan.weekday
+        plan.weekday = None
+        plan.save()
+       
+        return Response(f'plan removed on {weekday}')
         
     
 
@@ -121,7 +116,7 @@ class MyExercisesViewSet(ModelViewSet):
     serializer_class = CustomOrExerciseSerializer
 
     def get_queryset(self):
-        plan = Weekday.objects.get(id=self.kwargs['weekday_pk']).plan
+        plan = Plan.objects.get(weekday_id=self.kwargs['weekday_pk'], profile=self.request.user.profile)
         return Exercise.objects.filter(plan__profile__user=self.request.user, plan=plan).select_related('custom_exercise').prefetch_related('muscles').all()
 
     def get_serializer_class(self):
@@ -172,24 +167,17 @@ class ExerciseCompletionViewSet(ListModelMixin, CreateModelMixin, GenericViewSet
     permission_classes = [IsAuthenticated]
     def get_serializer_class(self):
         if self.request.method == 'GET':
-            return WeekDaySerializer
+            return PlanSerializer
         return UploadExerciseSerializer
 
     def get_queryset(self):
         weekday = datetime.now().strftime('%A')
 
-        queryset = Weekday.objects.filter(plan__profile=self.request.user.profile, weekday=weekday).prefetch_related(
-            'plan',  
-             
-            Prefetch('plan__exercise', queryset=Exercise.objects.prefetch_related(
-                'muscles', 
-                'custom_exercise', 
-            )),
-        ).prefetch_related('plan__completion_rates').prefetch_related('plan__weekdays').all()
+        queryset = Plan.objects.filter(weekday__weekday=weekday, profile__user=self.request.user)
 
         return queryset
     
 
     def get_serializer_context(self):
         weekday = datetime.now().strftime('%A')
-        return {'weekday': weekday}
+        return {'weekday': weekday, 'user': self.request.user}

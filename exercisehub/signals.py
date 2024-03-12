@@ -1,4 +1,4 @@
-from .models import CompletedExercise, Profile, Tracking, Plan
+from .models import CompletedExercise, Exercise, ExerciseCustom, Profile, Tracking, Plan
 from django.conf import settings
 from django.dispatch import receiver
 from django.contrib.contenttypes.models import ContentType
@@ -27,6 +27,4 @@ def update_overall_completion_rate(sender, created, instance, **kwargs):
         profile.save()
 
 
-
-        
 

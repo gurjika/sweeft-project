@@ -49,13 +49,17 @@ class ExerciseAchievement(models.Model):
 
 class Plan(models.Model):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='plans')
+    weekday = models.ForeignKey('Weekday', on_delete=models.CASCADE, related_name='plans', null=True)
     exercise = models.ManyToManyField(Exercise, related_name='plan', through='ExercisePlan')
+
+    class Meta:
+        unique_together = [['profile', 'weekday']]
+
 
 
 
 class Weekday(models.Model):
     weekday = models.CharField(max_length=255)
-    plan = models.ForeignKey(Plan, related_name='weekdays', on_delete=models.CASCADE, null=True)
 
     def __str__(self) -> str:
         return self.weekday
