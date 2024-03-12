@@ -32,21 +32,21 @@ class CustomOrExerciseSerializer(serializers.ModelSerializer):
 
 
     def return_reps(self, exercise):
-        new_exercise = exercise.custom_exercise.filter(created_by=self.context['user']).first()
+        new_exercise = next(iter(getattr(exercise, 'user_custom_exercise', [])), None)
         if new_exercise:
             return new_exercise.new_reps
         return exercise.reps
-        
+    
 
     def return_sets(self, exercise):
-        new_exercise = new_exercise = exercise.custom_exercise.filter(created_by=self.context['user']).first()
+        new_exercise = next(iter(getattr(exercise, 'user_custom_exercise', [])), None)
         if new_exercise:
             return new_exercise.new_sets
         return exercise.sets
     
 
     def return_duration(self, exercise):
-        new_exercise = new_exercise = exercise.custom_exercise.filter(created_by=self.context['user']).first()
+        new_exercise = next(iter(getattr(exercise, 'user_custom_exercise', [])), None)
         if new_exercise:
             return new_exercise.duration
         return exercise.duration
@@ -74,7 +74,6 @@ class PlanTrackingsSerializer(serializers.ModelSerializer):
 
 
 class PlanSerializer(serializers.ModelSerializer):
-    exercise = CustomOrExerciseSerializer(many=True)
     completion_rates = PlanTrackingsSerializer()
     class Meta:
         model = Plan
@@ -100,10 +99,10 @@ class SimplePlanSerializer(serializers.ModelSerializer):
 
 
 class ProfileSerializer(serializers.ModelSerializer):
-    plans = SimplePlanSerializer(many=True)
+    profile_plans = SimplePlanSerializer(many=True)
     class Meta:
         model = Profile
-        fields = ['id', 'user_id', 'age', 'weight_now', 'start_weight', 'goal_weight', 'height', 'plans', 'overall_completion_rate']
+        fields = ['id', 'user_id', 'age', 'weight_now', 'start_weight', 'goal_weight', 'height', 'profile_plans', 'overall_completion_rate']
 
 
 
@@ -180,15 +179,20 @@ class AddPlanToWeekDaySerializer(serializers.ModelSerializer):
         fields = ['id', 'weekday_id']
 
     def validate_weekday_id(self, value):
-        weekday_id = value
-        if Weekday.objects.filter(id=weekday_id, plans__profile_id=self.context['profile_id']).exists():
-            raise serializers.ValidationError(f"Weekday is already planned")
-        return True
+        weekday = value
+        
+
+        if Plan.objects.filter(weekday=weekday, profile=self.context['user'].profile).exists():
+            raise serializers.ValidationError('Weekday is already planned')
+        return weekday
 
 
     def create(self, validated_data):
         plan_id = self.validated_data['id']
+        
         weekday_id = self.validated_data['weekday_id']
+
+        
         profile_id = self.context['profile_id']
         weekday = Weekday.objects.get(id=weekday_id)
         plan, created = Plan.objects.get_or_create(id=plan_id, profile_id=profile_id)
@@ -338,7 +342,7 @@ class UploadExerciseSerializer(serializers.ModelSerializer):
 
         if plan_exercises.filter(id=exercise_id).exists():
             try:
-                goal_exercise = ExerciseCustom.objects.get(default_exercise_id=exercise_id)
+                goal_exercise = ExerciseCustom.objects.get(created_by=self.context['user'])
                 goal_reps = goal_exercise.new_reps
                 goal_sets = goal_exercise.new_sets
             except ExerciseCustom.DoesNotExist:

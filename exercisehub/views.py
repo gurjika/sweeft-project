@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from django.db.models import Prefetch
 from django.contrib.contenttypes.models import ContentType
 from exercisehub.serializers import AddExerciseToListSerializer, AddPlanToWeekDaySerializer, AssessmentSerializer, CreatePlanSerializer, CustomExerciseSerializer, DefaultExerciseSerializer, ExerciseAchievementSerializer, CustomOrExerciseSerializer, FullAssessmentSerializer, PlanSerializer, ProfileAchievementsSerializer, ProfileSerializer, SimpleProfileSerializer, UploadExerciseSerializer, WeekDaySerializer
-from .models import Assessment, Exercise, ExerciseAchievement, Plan, Profile, Weekday, Tracking
+from .models import Assessment, CompletedExercise, Exercise, ExerciseAchievement, ExerciseCustom, Plan, Profile, Weekday, Tracking
 from datetime import datetime
 # Create your views here.
 
@@ -28,7 +28,7 @@ class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Gener
 
     def get_queryset(self):
         plan_prefetch = Prefetch(
-        'plans',
+        'profile_plans',
         queryset=Plan.objects.prefetch_related('exercise'))
 
         profiles = Profile.objects.select_related('user').prefetch_related(plan_prefetch)
@@ -63,6 +63,9 @@ class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Gener
         if request.method == 'GET':
             serializer = ProfileAchievementsSerializer(queryset, many=True)
             return Response(serializer.data)
+        
+
+
 
 
 
@@ -81,7 +84,7 @@ class WeekdayViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet, Destroy
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Plan.objects.filter(profile=self.request.user.profile)
+        queryset = Plan.objects.filter(profile=self.request.user.profile).prefetch_related('completion_rates').prefetch_related('exercise')
         
 
         return queryset
@@ -123,7 +126,9 @@ class MyExercisesViewSet(ModelViewSet):
 
     def get_queryset(self):
         plan = Plan.objects.get(weekday_id=self.kwargs['weekday_pk'], profile__user=self.request.user)
-        return Exercise.objects.filter(plan=plan).prefetch_related('muscles').prefetch_related('custom_exercise').all()
+        return Exercise.objects.filter(plan=plan)\
+        .prefetch_related(Prefetch('custom_exercise', queryset=ExerciseCustom.objects.filter(created_by=self.request.user), to_attr='user_custom_exercise'))\
+        .prefetch_related('muscles')
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -135,15 +140,16 @@ class MyExercisesViewSet(ModelViewSet):
     def get_serializer_context(self):
         context = {'user': self.request.user}
 
-        
-
+       
 
 
         if self.request.method == 'POST':
             context['weekday_pk'] = self.kwargs['weekday_pk']
         if self.request.method == 'PATCH':
-             context['exercise_pk'] = self.kwargs['pk']
-             context['weekday_pk'] =  self.kwargs['weekday_pk']
+            context['exercise_pk'] = self.kwargs['pk']
+            context['weekday_pk'] =  self.kwargs['weekday_pk']
+
+        
             
         return context
 
@@ -200,7 +206,7 @@ class MyPlansViewSet(ModelViewSet):
 
 
     def get_queryset(self):
-        return Plan.objects.filter(profile__user=self.request.user)
+        return Plan.objects.filter(profile__user=self.request.user).prefetch_related('completion_rates').prefetch_related('exercise')
     
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -212,4 +218,5 @@ class MyPlansViewSet(ModelViewSet):
     
 
     def get_serializer_context(self):
-        return {'profile_id': self.request.user.profile.id}
+
+        return {'profile_id': self.request.user.profile.id, 'user': self.request.user,}
