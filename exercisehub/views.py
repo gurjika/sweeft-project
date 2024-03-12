@@ -73,26 +73,21 @@ class ExerciseViewSet(ModelViewSet):
             return [AllowAny()]
         return [IsAdminUser()]
     
-class WeekdayViewSet(ModelViewSet):
-    http_method_names = ['get', 'patch', 'head', 'options', 'post']
+class WeekdayViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet, DestroyModelMixin):
     
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-
-
-        queryset = Plan.objects.filter(profile=self.request.user.profile)
-
+        queryset = Weekday.objects.filter(plans__profile=self.request.user.profile)
         return queryset
     
 
     def get_serializer_class(self):
-        if self.request.method == 'GET':
-            return PlanSerializer
+       
         if self.request.method == 'POST':
             return CreatePlanSerializer
-        if self.request.method == 'PATCH':
-            return AddPlanToWeekDaySerializer
+
+        return WeekDaySerializer
     
     def get_serializer_context(self):
         return {'profile_id': self.request.user.profile.id}
@@ -116,7 +111,7 @@ class MyExercisesViewSet(ModelViewSet):
     serializer_class = CustomOrExerciseSerializer
 
     def get_queryset(self):
-        plan = Plan.objects.get(weekday_id=self.kwargs['weekday_pk'], profile=self.request.user.profile)
+        plan = Plan.objects.get(weekday_id=self.kwargs['weekday_pk'], profile__user=self.request.user)
         return Exercise.objects.filter(plan__profile__user=self.request.user, plan=plan).select_related('custom_exercise').prefetch_related('muscles').all()
 
     def get_serializer_class(self):
@@ -134,8 +129,7 @@ class MyExercisesViewSet(ModelViewSet):
     
 
     def destroy(self, request, *args, **kwargs):
-        weekday = Weekday.objects.get(id=self.kwargs['weekday_pk'])
-        plan = weekday.plan
+        plan = Plan.objects.get(weekday_id=self.kwargs['weekday_pk'], profile__user=self.request.user)
         exercise = Exercise.objects.get(pk=self.kwargs['pk'])
         plan.exercise.remove(exercise)
         return Response('Exercise Removed from your plan')
@@ -172,12 +166,27 @@ class ExerciseCompletionViewSet(ListModelMixin, CreateModelMixin, GenericViewSet
 
     def get_queryset(self):
         weekday = datetime.now().strftime('%A')
-
         queryset = Plan.objects.filter(weekday__weekday=weekday, profile__user=self.request.user)
-
         return queryset
     
 
     def get_serializer_context(self):
         weekday = datetime.now().strftime('%A')
         return {'weekday': weekday, 'user': self.request.user}
+    
+
+class MyPlansViewSet(ModelViewSet):
+
+
+
+    def get_queryset(self):
+        return Plan.objects.filter(profile__user=self.request.user)
+    
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return PlanSerializer
+        return AddPlanToWeekDaySerializer
+    
+
+    def get_serializer_context(self):
+        return {'profile_id': self.request.user.profile.id}

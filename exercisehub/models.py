@@ -13,7 +13,7 @@ class Profile(models.Model):
     height = models.DecimalField(max_digits=5, decimal_places=2, null=True)
     goal_weight = models.DecimalField(max_digits=5, decimal_places=2, null=True)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    overall_completion_rate = models.DecimalField(max_digits=5, decimal_places=2)
+    overall_completion_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
 
 class Muscle(models.Model):
     muscle = models.CharField(max_length=255)
@@ -54,6 +54,8 @@ class Plan(models.Model):
 
     class Meta:
         unique_together = [['profile', 'weekday']]
+
+        ordering = ['weekday__id']
 
 
 

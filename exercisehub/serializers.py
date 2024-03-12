@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from .models import Assessment, CompletedExercise, Exercise, ExerciseAchievement, ExerciseCustom, ExercisePlan, Muscle, Plan, Profile, Tracking, Weekday
-
+from django.db import IntegrityError
 
 
 
@@ -71,18 +71,20 @@ class PlanTrackingsSerializer(serializers.ModelSerializer):
         return 0
      
     
-class WeekDaySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Weekday
-        fields = ['id', 'weekday']
+
 
 class PlanSerializer(serializers.ModelSerializer):
     exercise = CustomOrExerciseSerializer(many=True)
     completion_rates = PlanTrackingsSerializer()
-    weekday = WeekDaySerializer()
     class Meta:
         model = Plan
-        fields = ['id', 'weekday', 'exercise', 'completion_rates']
+        fields = ['id', 'exercise', 'completion_rates']
+
+class WeekDaySerializer(serializers.ModelSerializer):
+    plans = PlanSerializer(many=True)
+    class Meta:
+        model = Weekday
+        fields = ['id', 'weekday', 'plans']
 
 
 class SimpleExerciseSerializer(serializers.ModelSerializer):
@@ -144,9 +146,10 @@ class AddExerciseToListSerializer(serializers.ModelSerializer):
 
 
     def create(self, validated_data):
+        user = self.context['user']
         exercise_id = self.validated_data['exercise_id']
         weekday_id = self.context['weekday_pk']
-        plan = Plan.objects.get(id=weekday_id)
+        plan = Plan.objects.get(weekday_id=weekday_id, profile__user=user)
         exercise =  Exercise.objects.get(id=exercise_id)
         
         plan.exercise.add(exercise)
@@ -158,12 +161,19 @@ class AddExerciseToListSerializer(serializers.ModelSerializer):
         
     
 class AddPlanToWeekDaySerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField()
     weekday_id = serializers.IntegerField()
+    id = serializers.IntegerField()
     class Meta:
-        model = Weekday
+
+        model = Plan
         fields = ['id', 'weekday_id']
 
+    def validate_weekday_id(self, value):
+        weekday_id = value
+        if Weekday.objects.get(id=weekday_id).plans.all() != 0:
+            raise serializers.ValidationError(f"Weekday is already planned")
+
+    
 
     def create(self, validated_data):
         plan_id = self.validated_data['id']
@@ -171,10 +181,10 @@ class AddPlanToWeekDaySerializer(serializers.ModelSerializer):
         profile_id = self.context['profile_id']
         weekday = Weekday.objects.get(id=weekday_id)
         plan, created = Plan.objects.get_or_create(id=plan_id, profile_id=profile_id)
-
+        
         plan.weekday = weekday
         plan.save()
-        
+    
 
         return plan
 
@@ -336,22 +346,17 @@ class UploadExerciseSerializer(serializers.ModelSerializer):
                 plan=plan,
                 completion_percentage=completion_percentage
             )
-        
-
-        
-
-
-
 
         return completed_exercise
     
 
 class CreatePlanSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Plan
         fields = ['id']
 
     def create(self, validated_data):
         
-        plan = Plan.objects.create(profile_id=self.context['profile_id'])
+        plan = Plan.objects.create(profile_id=self.context['profile_id'], weekday_id=self.validated_data['weekday_id'])
         return plan
