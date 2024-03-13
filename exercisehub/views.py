@@ -17,10 +17,25 @@ from datetime import datetime
 
 class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
     serializer_class = ProfileSerializer
+    """
+    get:
+    Return a list of all the existing profiles.
 
+    retrieve:
+    Return the given profile.
+
+    update:
+    Update a profile instance.
+    """
 
 
     def get_permissions(self):
+
+        """
+        Permissions change based on the request method:
+        - 'GET' requests are allowed for any user.
+        - All other requests require admin permissions.
+        """
         if self.request.method == 'GET':
             return [AllowAny()]
         return [IsAdminUser()]
@@ -45,6 +60,14 @@ class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Gener
 
     @action(detail=False, methods=['GET', 'PATCH'], permission_classes=[IsAuthenticated])
     def me(self, request):
+
+        """
+        me [GET]:
+        Return the profile of the currently authenticated user.
+
+        me [PATCH]:
+        Update the profile of the currently authenticated user.
+        """
       
         profile = self.get_queryset().filter(user=self.request.user).first()
 
@@ -59,7 +82,10 @@ class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Gener
         
     @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated])
     def achievement(self, request):
-        
+        """
+        achievement [GET]:
+        Return the achievements of the currently authenticated user's profile.
+        """
 
 
         queryset = Profile.objects.filter(user=self.request.user)
@@ -69,6 +95,11 @@ class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Gener
         
     @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated])
     def history(self, request):
+
+        """
+        history [GET]:
+        Return the exercise history of the currently authenticated user's profile.
+        """
         queryset = CompletedExercise.objects.filter(completed_by=self.request.user.profile).select_related('exercise')
         
         if request.method == 'GET':
@@ -81,6 +112,23 @@ class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Gener
 
 
 class ExerciseViewSet(ModelViewSet):
+
+    """
+    retrieve:
+    Return a single exercise instance by ID.
+
+    list:
+    Return a list of all exercises, filtered by any parameter sent.
+
+    create:
+    Create a new exercise instance.
+
+    Permissions change based on the request method:
+    - 'GET' requests are allowed for any user.
+    - All other requests require admin permissions.
+    """
+
+
     queryset = Exercise.objects.all().prefetch_related('muscles')
     serializer_class = DefaultExerciseSerializer
     filter_backends = [SearchFilter]
@@ -93,7 +141,18 @@ class ExerciseViewSet(ModelViewSet):
         return [IsAdminUser()]
     
 class WeekdayViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet, DestroyModelMixin):
+    """
+    get:
+    Return a list of plans for the current user.
+
+    retrieve:
+    Return a specific plan by weekday for the current user.
+
+    destroy:
+    Remove a plan from a specific weekday for the current user.
     
+    Permission is required for authenticated users.
+    """
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -131,6 +190,20 @@ class WeekdayViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet, Destroy
     
 
 class MyExercisesViewSet(ModelViewSet):
+
+    """
+    list:
+    Return a list of exercises for the plan of the specified weekday for the current user.
+
+    create:
+    Add an exercise to the plan of the specified weekday for the current user.
+
+    delete:
+    Remove an exercise from the plan of the specified weekday for the current user.
+
+    Permission is required for authenticated users.
+    """
+
 
     permission_classes = [IsAuthenticated]
     http_method_names = ['patch', 'get', 'delete', 'head', 'options', 'post']
@@ -175,6 +248,18 @@ class MyExercisesViewSet(ModelViewSet):
 
 
 class AssessmentViewSet(ListModelMixin, GenericViewSet, CreateModelMixin):
+    """
+    list:
+    Return a list of assessments for the current user.
+
+    create:
+    Create a new assessment for the current user.
+
+    Permission is required for authenticated users.
+    """
+
+
+
     permission_classes = [IsAuthenticated]
     serializer_class = FullAssessmentSerializer
     def get_queryset(self):
@@ -196,6 +281,16 @@ class AssessmentViewSet(ListModelMixin, GenericViewSet, CreateModelMixin):
 
 
 class ExerciseCompletionViewSet(ListModelMixin, CreateModelMixin, GenericViewSet):
+
+    """
+    list:
+    Return a list of plans for today for the current user.
+
+    create:
+    Mark an exercise as completed for today's plan for the current user.
+
+    Permission is required for authenticated users.
+    """
     permission_classes = [IsAuthenticated]
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -214,6 +309,23 @@ class ExerciseCompletionViewSet(ListModelMixin, CreateModelMixin, GenericViewSet
     
 
 class MyPlansViewSet(ModelViewSet):
+
+
+    """
+    list:
+    Return a list of plans for the current user.
+
+    create:
+    Create a new plan for the current user.
+
+    update:
+    Update a specific plan for the current user.
+
+    delete:
+    Delete a specific plan for the current user.
+
+    Permission is required for authenticated users.
+    """
 
     http_method_names = ['get', 'post', 'delete', 'patch', 'head', 'options']
 

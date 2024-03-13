@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'djoser',
+    'drf_yasg',
     "debug_toolbar",
     'core',
     'exercisehub',
@@ -172,6 +173,3 @@ REST_FRAMEWORK = {
 }
 
 
-SPECTACULAR_SETTINGS = {
-    'TITLE', 'Sweeft - Project'
-}
