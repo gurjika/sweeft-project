@@ -1,8 +1,8 @@
-### ExerciseHub API
+# ExerciseHub API
 
 ExerciseHub is a comprehensive fitness tracking API, designed to manage users' profiles, exercises, plans, and achievements. Built with Django and Django Rest Framework (DRF), it provides a robust set of endpoints for a fitness application.
 
-### Features
+# Features
 
 ## User Profiles: 
 Manage user profiles, including viewing and updating profiles.
@@ -19,45 +19,37 @@ Track exercise achievements and view the history of completed exercises.
 
 # API Endpoints
 
-## Profiles
 
-### GET /profiles/: Retrieve a list of all user profiles.
-### GET /profiles/{id}/: Retrieve a specific profile by ID.
-### PATCH /profiles/{id}/: Update a specific profile.
+# API Endpoints Overview
+ExerciseHub API offers a variety of endpoints for managing fitness data:
 
-## Exercises
+### Profiles: 
+Manage user profiles, including fetching and updating profile information.
 
-# GET /exercises/: Retrieve a list of all exercises.
-# POST /exercises/: Create a new exercise.
-# GET /exercises/{id}/: Retrieve a specific exercise by ID.
-# PATCH /exercises/{id}/: Update a specific exercise.
-# DELETE /exercises/{id}/: Delete a specific exercise.
-## Plans
+### Exercises:
+Retrieve and manage exercises, including creating new exercises and listing all available exercises.
 
-# GET /plans/: Retrieve a list of all plans for the current user.
-# POST /plans/: Create a new plan.
-# PATCH /plans/{weekday}/: Update a plan for a specific weekday.
-# DELETE /plans/{weekday}/: Remove a plan from a specific weekday.
+### Plans: 
+Create, retrieve, update, and delete workout plans.
 
-## Achievements & History
+### Assessments: 
+Manage user fitness assessments.
 
-# GET /profiles/me/achievements/: Retrieve the achievements of the currently authenticated user.
-# GET /profiles/me/history/: Retrieve the exercise history of the currently authenticated user.
-# Authentication & Permissions
-# The API uses token-based authentication. Most endpoints require the user to be authenticated. Permissions vary by endpoint:
+### Achievements:
+Track and retrieve user exercise achievements and history.
 
-Profile updates and sensitive actions require admin or user-specific permissions.
-Reading exercises and general profile information is available to any authenticated user.
-### Getting Started
-# To use the ExerciseHub API, follow these steps:
+## Each endpoint supports various operations, such as GET, POST, PATCH, and DELETE, tailored to the needs of the respective resource.
 
-### Clone the repository.
-# Install the required dependencies: pip install -r requirements.txt.
+# Swagger Documentation
+To explore and test the API endpoints, visit the Swagger documentation at http://localhost:8000/swagger/. This interactive documentation provides detailed information about each endpoint, including the expected request bodies, response formats, and query parameters.
 
-# Run the Django migrations to set up your database: python manage.py migrate.
+## Clone the repository.
+### Install the required dependencies: pip install -r requirements.txt.
 
-# Start the development server: python manage.py runserver.
+### Run the Django migrations to set up your database: python manage.py migrate.
+
+### Start the development server: python manage.py runserver.
  
-# Populate the Postgresql: python manage.py seed_db
+### Populate the Postgresql: python manage.py seed_db
 
-# Use a tool like Postman or cURL to interact with the API endpoints.
+### Use a tool like Postman or cURL to interact with the API endpoints.
