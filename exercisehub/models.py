@@ -64,7 +64,7 @@ class ExerciseAchievement(models.Model):
 
 
 class Plan(models.Model):
-    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='profile_plans')
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='profile_plans', null=True)
     weekday = models.ForeignKey('Weekday', on_delete=models.CASCADE, related_name='plans', null=True)
     exercise = models.ManyToManyField(Exercise, related_name='plan', through='ExercisePlan')
 
@@ -124,4 +124,5 @@ class CompletedExercise(models.Model):
 
     def __str__(self) -> str:
         return self.exercise.name
+
 

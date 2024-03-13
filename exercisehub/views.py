@@ -38,7 +38,7 @@ class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Gener
         """
         if self.request.method == 'GET':
             return [AllowAny()]
-        return [IsAdminUser()]
+        return [IsAuthenticated()]
     
 
     def get_queryset(self):
@@ -75,7 +75,7 @@ class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Gener
             serializer = ProfileSerializer(profile)
             return Response(serializer.data)
         elif request.method == 'PATCH':
-            serializer = ProfileSerializer(profile, data=request.data)
+            serializer = SimpleProfileSerializer(profile, data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)

@@ -99,13 +99,20 @@ class SimplePlanSerializer(serializers.ModelSerializer):
         fields = ['id', 'exercise', 'weekday']
 
 
+
+
 class ProfileSerializer(serializers.ModelSerializer):
-    profile_plans = SimplePlanSerializer(many=True)
+    profile_plans = SimplePlanSerializer(many=True, read_only=True)
+    weight_now = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
+    start_weight = serializers.DecimalField(max_digits=5, decimal_places=2)
+
     class Meta:
         model = Profile
         fields = ['id', 'user_id', 'age', 'weight_now', 'start_weight', 'goal_weight', 'height', 'profile_plans', 'overall_completion_rate']
 
 
+
+        
 
 
 class CustomExerciseSerializer(serializers.ModelSerializer):
@@ -208,7 +215,24 @@ class AddPlanToWeekDaySerializer(serializers.ModelSerializer):
 class SimpleProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
-        fields = ['age', 'weight_now', 'goal_weight', 'height']
+        fields = ['age', 'start_weight', 'goal_weight', 'height']
+
+
+    
+    def update(self, instance, validated_data):
+
+        start_weight = validated_data.get('start_weight')
+        if start_weight and not instance.start_weight:
+            instance.start_weight = validated_data.get('start_weight', instance.start_weight)
+        
+        instance.age = validated_data.get('age', instance.age)
+        instance.goal_weight = validated_data.get('goal_weight', instance.goal_weight)
+        instance.height = validated_data.get('height', instance.height)
+        
+        instance.save()
+
+        return instance
+
 
 
 class AssessmentSerializer(serializers.ModelSerializer):
@@ -223,6 +247,8 @@ class FullAssessmentSerializer(serializers.ModelSerializer):
     start_weight = serializers.DecimalField(read_only=True, decimal_places=2, max_digits=5)
     weight_gained = serializers.SerializerMethodField(method_name='returns_weight_gained')
     weight_lost = serializers.SerializerMethodField(method_name='returns_weight_lost')
+    goal_weight = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
+
 
     class Meta:
         model = Profile
@@ -230,16 +256,20 @@ class FullAssessmentSerializer(serializers.ModelSerializer):
 
 
     def returns_weight_gained(self, profile):
-        weight_gained = profile.weight_now - profile.start_weight
+        weight_gained = 0
+        if profile.weight_now and profile.start_weight:
+            weight_gained = profile.weight_now - profile.start_weight
         
-        if weight_gained < 0:
-            return 0
+            if weight_gained < 0:
+                return 0
         return weight_gained
     
     def returns_weight_lost(self, profile):
-        weight_lost = profile.start_weight - profile.weight_now
-        if weight_lost < 0:
-            return 0
+        weight_lost = 0
+        if profile.weight_now and profile.start_weight:
+            weight_lost = profile.start_weight - profile.weight_now
+            if weight_lost < 0:
+                return 0
         return weight_lost
     
     def create(self, validated_data):
