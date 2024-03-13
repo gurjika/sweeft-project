@@ -165,7 +165,7 @@ class AddExerciseToListSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['user']
-        exercise_id = self.validated_data['exercise_id']
+        exercise_id = self.validated_data.get('exercise_id')
         weekday_id = self.context['weekday_pk']
         plan = Plan.objects.get(weekday_id=weekday_id, profile__user=user)
         exercise =  Exercise.objects.get(id=exercise_id)
@@ -273,7 +273,7 @@ class FullAssessmentSerializer(serializers.ModelSerializer):
         return weight_lost
     
     def create(self, validated_data):
-        weight_now = validated_data['weight_now']
+        weight_now = validated_data.get('weight_now')
         profile_id = self.context['profile_id']
         assessment = Assessment.objects.create(weight=weight_now, profile_id=profile_id)
         assessment.save()
@@ -311,10 +311,10 @@ class UploadExerciseSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['user']
-        reps = validated_data['reps']
-        sets = validated_data['sets']
-        exercise_id = validated_data['exercise_id']
-        duration = validated_data['duration']
+        reps = validated_data.get('reps')
+        sets = validated_data.get('sets')
+        exercise_id = validated_data.get('exercise_id')
+        duration = validated_data.get('duration')
         completed_exercise = CompletedExercise.objects.create(exercise_id=exercise_id, reps=reps, sets=sets, duration=duration, completed_by=user.profile)
         completed_exercise.save()
         try:
