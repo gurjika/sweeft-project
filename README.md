@@ -17,8 +17,6 @@ Users can create, update, and delete their workout plans, assign exercises to sp
 Track exercise achievements and view the history of completed exercises.
 
 
-# API Endpoints
-
 
 # API Endpoints Overview
 ExerciseHub API offers a variety of endpoints for managing fitness data:
