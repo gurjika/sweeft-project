@@ -17,13 +17,13 @@ Users can create, update, and delete their workout plans, assign exercises to sp
 Track exercise achievements and view the history of completed exercises.
 
 
-#### API Endpoints
+# API Endpoints
 
 ## Profiles
 
-# GET /profiles/: Retrieve a list of all user profiles.
-# GET /profiles/{id}/: Retrieve a specific profile by ID.
-# PATCH /profiles/{id}/: Update a specific profile.
+### GET /profiles/: Retrieve a list of all user profiles.
+### GET /profiles/{id}/: Retrieve a specific profile by ID.
+### PATCH /profiles/{id}/: Update a specific profile.
 
 ## Exercises
 
