@@ -36,4 +36,3 @@ To explore and test the API endpoints, visit the Swagger documentation at http:/
  
 ### Populate the Postgresql database: python manage.py seed_db
 
-### Use a tool like Postman or cURL to interact with the API endpoints.
