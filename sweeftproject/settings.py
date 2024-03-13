@@ -80,7 +80,6 @@ WSGI_APPLICATION = 'sweeftproject.wsgi.application'
 
 USER = os.environ.get('USER')
 HOST = os.environ.get('HOST')
-ENGINE = os.environ.get('ENGINE')
 PASSWORD = os.environ.get('PASSWORD')
 NAME = os.environ.get('NAME')
 
@@ -89,9 +88,9 @@ NAME = os.environ.get('NAME')
 
 DATABASES = {
     'default': {
-        'ENGINE': ENGINE,
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': NAME,
-        'USER': USER,
+        'USER': 'postgres',
         'PASSWORD': PASSWORD,
         'HOST': HOST,
     }

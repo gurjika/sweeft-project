@@ -2,6 +2,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from .models import Assessment, CompletedExercise, Exercise, ExerciseAchievement, ExerciseCustom, ExercisePlan, Muscle, Plan, Profile, Tracking, Weekday
 from django.db import IntegrityError
+from django.db import transaction
 
 
 
@@ -309,94 +310,96 @@ class UploadExerciseSerializer(serializers.ModelSerializer):
         model = CompletedExercise
         fields = ['exercise_id', 'reps', 'sets', 'duration']
 
+
     def create(self, validated_data):
-        user = self.context['user']
-        reps = validated_data.get('reps')
-        sets = validated_data.get('sets')
-        exercise_id = validated_data.get('exercise_id')
-        duration = validated_data.get('duration')
-        completed_exercise = CompletedExercise.objects.create(exercise_id=exercise_id, reps=reps, sets=sets, duration=duration, completed_by=user.profile)
-        completed_exercise.save()
-        try:
-            plan = Plan.objects.get(weekday__weekday=self.context['weekday'], profile__user=user)
+        with transaction.atomic():
+            user = self.context['user']
+            reps = validated_data.get('reps')
+            sets = validated_data.get('sets')
+            exercise_id = validated_data.get('exercise_id')
+            duration = validated_data.get('duration')
+            completed_exercise = CompletedExercise.objects.create(exercise_id=exercise_id, reps=reps, sets=sets, duration=duration, completed_by=user.profile)
+            completed_exercise.save()
+            try:
+                plan = Plan.objects.get(weekday__weekday=self.context['weekday'], profile__user=user)
 
-            plan_exercises = plan.exercise
+                plan_exercises = plan.exercise
 
-            if plan_exercises.filter(id=exercise_id).exists():
-                try:
-                    goal_exercise = ExerciseCustom.objects.get(created_by=self.context['user'])
-                    goal_reps = goal_exercise.new_reps
-                    goal_sets = goal_exercise.new_sets
-                except ExerciseCustom.DoesNotExist:
-                    goal_exercise = Exercise.objects.get(id=exercise_id)
-                    goal_reps = goal_exercise.reps
-                    goal_sets = goal_exercise.sets
+                if plan_exercises.filter(id=exercise_id).exists():
+                    try:
+                        goal_exercise = ExerciseCustom.objects.get(created_by=self.context['user'])
+                        goal_reps = goal_exercise.new_reps
+                        goal_sets = goal_exercise.new_sets
+                    except ExerciseCustom.DoesNotExist:
+                        goal_exercise = Exercise.objects.get(id=exercise_id)
+                        goal_reps = goal_exercise.reps
+                        goal_sets = goal_exercise.sets
 
-                completion_percentage = 100 * ((reps * sets) / (goal_reps * goal_sets))
+                    completion_percentage = 100 * ((reps * sets) / (goal_reps * goal_sets))
 
-                if completion_percentage > 100:
-                    completion_percentage = 100
+                    if completion_percentage > 100:
+                        completion_percentage = 100
+            
+                    Tracking.objects.create(
+                        plan=plan,
+                        completion_percentage=completion_percentage
+                    )
+            except Plan.DoesNotExist:
+                pass
+
+            last_exercise_achievement = ExerciseAchievement.objects.filter(exercise_id=exercise_id, profile=user.profile).last()
         
-                Tracking.objects.create(
-                    plan=plan,
-                    completion_percentage=completion_percentage
-                )
-        except Plan.DoesNotExist:
-            pass
 
-        last_exercise_achievement = ExerciseAchievement.objects.filter(exercise_id=exercise_id, profile=user.profile).last()
-       
+            new_reps = reps
+            new_sets = sets
 
-        new_reps = reps
-        new_sets = sets
+            create_new_achievement = False
+            create_new_achievement_robust = False
 
-        create_new_achievement = False
-        create_new_achievement_robust = False
+        
 
-      
-
-        user = self.context['user']
-        if last_exercise_achievement:
-            if (new_reps and new_reps > last_exercise_achievement.achieved_reps) or \
-                (new_sets and new_sets > last_exercise_achievement.achieved_sets):
-                create_new_achievement = True
-        else:
-            create_new_achievement_robust = True
+            user = self.context['user']
+            if last_exercise_achievement:
+                if (new_reps and new_reps > last_exercise_achievement.achieved_reps) or \
+                    (new_sets and new_sets > last_exercise_achievement.achieved_sets):
+                    create_new_achievement = True
+            else:
+                create_new_achievement_robust = True
 
 
-        if create_new_achievement:
-            new_achivement = {
-                'achieved_sets': None,
-                'achieved_reps': None
-            }
+            if create_new_achievement:
+                new_achivement = {
+                    'achieved_sets': None,
+                    'achieved_reps': None
+                }
 
-            if new_reps * new_sets > last_exercise_achievement.achieved_reps * last_exercise_achievement.achieved_sets:
-                new_achivement['achieved_sets'] = new_sets
-                new_achivement['achieved_reps'] = new_reps
+                if new_reps * new_sets > last_exercise_achievement.achieved_reps * last_exercise_achievement.achieved_sets:
+                    new_achivement['achieved_sets'] = new_sets
+                    new_achivement['achieved_reps'] = new_reps
 
-                created_achivement = ExerciseAchievement.objects.create(
-                exercise_id=exercise_id, 
+                    created_achivement = ExerciseAchievement.objects.create(
+                    exercise_id=exercise_id, 
+                    profile=user.profile, 
+                    duration=duration,
+                    **new_achivement
+                    )
+
+                    created_achivement.save()
+            
+            if create_new_achievement_robust:
+                new_achivement = ExerciseAchievement.objects.create \
+                (exercise_id=exercise_id, 
                 profile=user.profile, 
-                duration=duration,
-                **new_achivement
-                )
+                achieved_reps=new_reps,
+                achieved_sets=new_sets,
+                duration=duration)
 
-                created_achivement.save()
+                new_achivement.save()
+
         
-        if create_new_achievement_robust:
-            new_achivement = ExerciseAchievement.objects.create \
-            (exercise_id=exercise_id, 
-             profile=user.profile, 
-             achieved_reps=new_reps,
-             achieved_sets=new_sets,
-             duration=duration)
 
-            new_achivement.save()
-
-       
-
-        return completed_exercise
-    
+            return completed_exercise
+        
 
 class CreatePlanSerializer(serializers.ModelSerializer):
 
