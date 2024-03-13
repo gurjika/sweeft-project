@@ -81,14 +81,15 @@ class ProfileViewSet(ListModelMixin, RetrieveModelMixin, UpdateModelMixin, Gener
             return Response(serializer.data)
         
     @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated])
-    def achievement(self, request):
+    def achievements(self, request):
         """
         achievement [GET]:
         Return the achievements of the currently authenticated user's profile.
         """
 
 
-        queryset = Profile.objects.filter(user=self.request.user)
+        queryset = Profile.objects.filter(user=self.request.user).prefetch_related('achievements__exercise')
+
         if request.method == 'GET':
             serializer = ProfileAchievementsSerializer(queryset, many=True)
             return Response(serializer.data)
@@ -201,6 +202,12 @@ class MyExercisesViewSet(ModelViewSet):
     delete:
     Remove an exercise from the plan of the specified weekday for the current user.
 
+    retrieve:
+    Retrive an exercise by plan_id and exercise id.
+
+    Additional behaviors:
+        - If exercise object has a custom exercise record, custom exercise info will be displayed.
+
     Permission is required for authenticated users.
     """
 
@@ -289,6 +296,10 @@ class ExerciseCompletionViewSet(ListModelMixin, CreateModelMixin, GenericViewSet
     create:
     Mark an exercise as completed for today's plan for the current user.
 
+    Additional behaviors:
+        - If the completed sets and reps exceed what the user has previously achieved, an achievement record is created.
+        - If the completed exercise is part of today's plan, a tracking record is created.
+
     Permission is required for authenticated users.
     """
     permission_classes = [IsAuthenticated]
@@ -343,5 +354,4 @@ class MyPlansViewSet(ModelViewSet):
     
 
     def get_serializer_context(self):
-
         return {'profile_id': self.request.user.profile.id, 'user': self.request.user,}

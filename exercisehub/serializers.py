@@ -70,11 +70,16 @@ class PlanTrackingsSerializer(serializers.ModelSerializer):
             return sum / count
         return 0
      
-    
+class SimpleExerciseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Exercise
+        fields = ['id', 'name']
+
 
 
 class PlanSerializer(serializers.ModelSerializer):
     completion_rates = PlanTrackingsSerializer()
+    exercise = SimpleExerciseSerializer(many=True)
     class Meta:
         model = Plan
         fields = ['id', 'exercise', 'completion_rates', 'weekday_id']
@@ -86,10 +91,6 @@ class WeekDaySerializer(serializers.ModelSerializer):
         fields = ['id', 'weekday', 'plans']
 
 
-class SimpleExerciseSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Exercise
-        fields = ['id', 'name']
 
 class SimplePlanSerializer(serializers.ModelSerializer):
     exercise = SimpleExerciseSerializer(many=True)
@@ -257,6 +258,7 @@ class FullAssessmentSerializer(serializers.ModelSerializer):
     
 
 class ExerciseAchievementSerializer(serializers.ModelSerializer):
+    exercise = SimpleExerciseSerializer()
     class Meta:
         model = ExerciseAchievement
         fields = ['id', 'date_added', 'achieved_reps', 'achieved_sets', 'duration', 'exercise']
@@ -285,7 +287,32 @@ class UploadExerciseSerializer(serializers.ModelSerializer):
         duration = validated_data['duration']
         completed_exercise = CompletedExercise.objects.create(exercise_id=exercise_id, reps=reps, sets=sets, duration=duration, completed_by=user.profile)
         completed_exercise.save()
-        plan = Plan.objects.get(weekday__weekday=self.context['weekday'], profile__user=user)
+        try:
+            plan = Plan.objects.get(weekday__weekday=self.context['weekday'], profile__user=user)
+
+            plan_exercises = plan.exercise
+
+            if plan_exercises.filter(id=exercise_id).exists():
+                try:
+                    goal_exercise = ExerciseCustom.objects.get(created_by=self.context['user'])
+                    goal_reps = goal_exercise.new_reps
+                    goal_sets = goal_exercise.new_sets
+                except ExerciseCustom.DoesNotExist:
+                    goal_exercise = Exercise.objects.get(id=exercise_id)
+                    goal_reps = goal_exercise.reps
+                    goal_sets = goal_exercise.sets
+
+                completion_percentage = 100 * ((reps * sets) / (goal_reps * goal_sets))
+
+                if completion_percentage > 100:
+                    completion_percentage = 100
+        
+                Tracking.objects.create(
+                    plan=plan,
+                    completion_percentage=completion_percentage
+                )
+        except Plan.DoesNotExist:
+            pass
 
         last_exercise_achievement = ExerciseAchievement.objects.filter(exercise_id=exercise_id, profile=user.profile).last()
        
@@ -336,31 +363,7 @@ class UploadExerciseSerializer(serializers.ModelSerializer):
 
             new_achivement.save()
 
-
-
-        plan_exercises = plan.exercise
-
-        if plan_exercises.filter(id=exercise_id).exists():
-            try:
-                goal_exercise = ExerciseCustom.objects.get(created_by=self.context['user'])
-                goal_reps = goal_exercise.new_reps
-                goal_sets = goal_exercise.new_sets
-            except ExerciseCustom.DoesNotExist:
-                goal_exercise = Exercise.objects.get(id=exercise_id)
-                goal_reps = goal_exercise.reps
-                goal_sets = goal_exercise.sets
-
-            
-
-            completion_percentage = 100 * ((reps * sets) / (goal_reps * goal_sets))
-
-            if completion_percentage > 100:
-                completion_percentage = 100
-    
-            Tracking.objects.create(
-                plan=plan,
-                completion_percentage=completion_percentage
-            )
+       
 
         return completed_exercise
     

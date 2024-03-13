@@ -52,7 +52,7 @@ class ExerciseCustom(models.Model):
 class ExerciseAchievement(models.Model):
     achieved_sets = models.PositiveSmallIntegerField(null=True, validators=[MinValueValidator(1), MaxValueValidator(12)])
     achieved_reps = models.PositiveSmallIntegerField(null=True, validators=[MinValueValidator(1), MaxValueValidator(20)])
-    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE, related_name='exercises')
+    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE, related_name='exercise_achievements')
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='achievements')
     duration = models.PositiveSmallIntegerField(validators=[MinValueValidator(4), MaxValueValidator(60)])
     date_added = models.DateField(auto_now_add=True)
