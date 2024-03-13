@@ -2,20 +2,6 @@
 
 ExerciseHub is a comprehensive fitness tracking API, designed to manage users' profiles, exercises, plans, and achievements. Built with Django and Django Rest Framework (DRF), it provides a robust set of endpoints for a fitness application.
 
-# Features
-
-## User Profiles: 
-Manage user profiles, including viewing and updating profiles.
-
-## Exercises:
-Access to a vast library of exercises, along with the ability to create, retrieve, update, and delete custom exercises.
-
-## Plans:
-Users can create, update, and delete their workout plans, assign exercises to specific weekdays, and track their completion.
-
-## Achievements & History: 
-Track exercise achievements and view the history of completed exercises.
-
 
 
 # API Endpoints Overview
