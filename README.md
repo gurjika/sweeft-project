@@ -36,7 +36,7 @@ Manage user fitness assessments.
 ### Achievements:
 Track and retrieve user exercise achievements and history.
 
-## Each endpoint supports various operations, such as GET, POST, PATCH, and DELETE, tailored to the needs of the respective resource.
+### Each endpoint supports various operations, such as GET, POST, PATCH, and DELETE, tailored to the needs of the respective resource.
 
 # Swagger Documentation
 To explore and test the API endpoints, visit the Swagger documentation at http://localhost:8000/swagger/. This interactive documentation provides detailed information about each endpoint, including the expected request bodies, response formats, and query parameters.
