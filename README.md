@@ -34,5 +34,5 @@ To explore and test the API endpoints, visit the Swagger documentation at http:/
 
 ### Start the development server: python manage.py runserver.
  
-### Populate the Postgresql database: python manage.py seed_db
+### Populate the Postgresql database: python manage.py seed_db or run psql -h host -U user -d database -f  outputfile.sql
 
